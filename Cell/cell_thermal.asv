@@ -1,0 +1,73 @@
+
+function [T_cell, Q_heat, V_terminal] = cell_thermal(SOC, I, T_amb, Cth, hA, dt_s, map)
+% CELL_THERMAL  Schimpe thermal model — Section 2.3.2, pages 15-19
+% 
+% INPUTS:
+%   SOC         — state of charge (0..1)
+%   I           — current (A), positive = discharge
+%   T_cell_prev — cell temperature previous step (°C)
+%   T_amb       — ambient temperature (°C), can be time-varying
+%   Cth         — thermal capacity (J/K) = m_cell * cp_cell
+%   hA          — convective heat transfer coefficient (W/K)
+%   dt_s        — timestep in seconds = dt_h * 3600
+%   map         — stoichiometry struct with xa0, xa100, xc0, xc100
+
+if nargin < 8 || ~isstruct(map)
+    map.xa0   = 8.5e-3;
+    map.xa100 = 0.78;
+    map.xc0   = 0.916;
+    map.xc100 = 0.045;
+end
+
+% ── TEMPERATURES ─────────────────────────────────────────────────────────
+T_ref  = 298.15;               % K, 25°C reference
+T_K    = T_cell_prev + 273.15; % K, current cell temperature
+
+% ── OCV FROM HALF-CELL POTENTIALS (Safari et al., Eq. A1-A3, Chapter 6) ──
+% Full cell OCV = Uc(xc) - Ua(xa)
+soc_c  = max(0, min(1, SOC));
+xa     = map.xa0  + soc_c * (map.xa100 - map.xa0);
+xc     = map.xc0  + soc_c * (map.xc100 - map.xc0);
+
+% Anode potential (Safari et al.)
+Ua = 0.6379 ...
+   + 0.5416 * exp(-305.5309 * xa) ...
+   + 0.0440 * tanh(-(xa - 0.1958) / 0.1088) ...
+   - 0.1978 * tanh((xa - 1.0571) / 0.0854) ...
+   - 0.6875 * tanh((xa + 0.0117) / 0.0529) ...
+   - 0.0175 * tanh((xa - 0.5692) / 0.0875);
+
+% Cathode potential (Safari et al., Eq. A3)
+Uc = 3.4323 ...
+   - 0.8428   * exp(-80.2493 * (1 - xc)^1.3198) ...
+   - 3.2474e-6 * exp(20.2645 * (1 - xc)^3.8003) ...
+   + 3.2482e-6 * exp(20.2646 * (1 - xc)^3.7995);
+
+OCV_ref = Uc - Ua;   % full cell OCV at T_ref
+
+% ── TEMPERATURE CORRECTION OF OCV (Eq. 2.13, p.18) ──────────────────────
+% U_OCV(T) = U_OCV,ref + (T - T_ref) * dU/dT
+dUdT = -0.3e-3;      % V/K, average from Fig 2.12e p.16
+OCV  = OCV_ref + (T_K - T_ref) * dUdT;
+
+% ── INTERNAL RESISTANCE (Fig 2.12c, p.16) ────────────────────────────────
+% R0(T) = R0_ref * exp(Ea/R * (1/T - 1/T_ref))
+R0_ref = 0.03575;    % Ω at 25°C, Table 2 p.32
+R0     = R0_ref * exp(3000 * (1/T_K - 1/T_ref));
+
+% ── TERMINAL VOLTAGE (Eq. 2.11, p.18) ────────────────────────────────────
+% V_T = OCV - I*R0  (hysteresis neglected — small for LFP)
+V_terminal = OCV - I * R0;
+
+% ── HEAT GENERATION (Eq. 2.14, p.18) ─────────────────────────────────────
+% Q_cell = I²*R0 + I*T*dU/dT
+Q_irrev = I^2 * R0;          % W, ohmic — always positive
+Q_rev   = I * T_K * dUdT;   % W, entropic — positive discharge, negative charge
+Q_heat  = Q_irrev + Q_rev;  % W, total heat into cell
+
+% ── THERMAL BALANCE (Eq. 2.15, p.19) ─────────────────────────────────────
+% Cth * dT/dt = Q_cell - Q_cell_amb
+% Q_cell_amb = hA * (T_cell - T_amb)
+Q_cool = hA * (T_cell_prev - T_amb);                    % W, heat lost to ambient
+T_cell = T_cell_prev + (dt_s/ Cth) * (Q_heat - Q_cool); % °C, forward Euler
+end
