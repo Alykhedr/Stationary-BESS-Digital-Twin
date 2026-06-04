@@ -1,5 +1,4 @@
 clear; clc; 
-tic
 load("WS_Variables.mat")
 
 load_system("Battery_sim_2");
