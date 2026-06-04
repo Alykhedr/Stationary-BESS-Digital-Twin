@@ -1,5 +1,5 @@
-function [Q_heat, V_terminal, s_rate_per_h, Ua, dTcell_dt] = ...
-         cell_thermal(SOC, I, T_cell, T_amb)
+function [Q_heat, V_terminal, self_discharge_rate_per_h, dTcell_dt] = ...
+         cell_thermal(SOC, I, T_cell, T_amb,R_i)
 % CELL_THERMAL  Single-cell electro-thermal model for Sony US26650FTC1 (LFP-C).
 %
 % Faithful implementation of Schimpe et al. (2018) "Energy efficiency
@@ -28,8 +28,31 @@ function [Q_heat, V_terminal, s_rate_per_h, Ua, dTcell_dt] = ...
 %   - 0D dynamic thermal: INCLUDED (Eq. 2.15, lumped cell heat capacity)
 %   - Reversible heat (entropy): DROPPED — averages to zero over a cycle
 %   - R(SOC,T) coupling: separable approximation
-%     R(SOC,T,dir) = R_25C(SOC,dir) × f_T(T,dir)
-%     This is standard practice when full 2D R-table is unpublished.
+%     R(SOC,T,dir) = R_Ref25C(SOC,dir) × f_T(T,dir)
+
+% =====================================================================
+% Step 0: Resistance Pre Calculation For step 4
+% =====================================================================
+% Persistent variables initialized once
+% persistent SOC_grid T_grid_C R_ch_2D R_dis_2D
+% if isempty(SOC_grid)
+%     % Initialize tables on first call
+%     SOC_grid     = 0:0.10:1.00;
+%     T_grid_C     = [10 20 25 30 40 50 60];
+%     R_ch_Ref25C  = [36 40 42 42 43 45 47 51 49 53 65] * 1e-3;
+%     R_dis_Ref25C = [80 65 55 52 52 50 48 43 42 40 38] * 1e-3;
+%     R_ch_Ref50SOC  = [67 51 46 43 36 33 30] * 1e-3;
+%     R_dis_Ref50SOC = [72 55 48 45 40 36 33] * 1e-3;
+%     R_ch_ref  = interp1(SOC_grid, R_ch_Ref25C,  0.50, 'linear');
+%     R_dis_ref = interp1(SOC_grid, R_dis_Ref25C, 0.50, 'linear');
+%     R_ch_2D  = zeros(length(T_grid_C), length(SOC_grid));
+%     R_dis_2D = zeros(length(T_grid_C), length(SOC_grid));
+%     for i = 1:length(T_grid_C)
+%         R_ch_2D(i, :)  = R_ch_Ref25C  * (R_ch_Ref50SOC(i)  / R_ch_ref);
+%         R_dis_2D(i, :) = R_dis_Ref25C * (R_dis_Ref50SOC(i) / R_dis_ref);
+%     end
+% end
+
 
 % =====================================================================
 % Step 1: Constants
@@ -60,41 +83,20 @@ OCV_ref = interp1(SOC_OCV_grid, OCV_grid, soc_c, 'linear');
 % representative value at SOC=50% to avoid digitizing Fig. 5e while keeping
 % the temperature correction. Effect: ≤6 mV across operating T range.
 % =====================================================================
-dUdT_50soc = 0.1e-3;                    % [V/K] at SOC=50%, from Fig. 5e
-OCV        = OCV_ref + (T_K - T_ref_K) * dUdT_50soc;
+dUdT_Ref50SOC = 0.1e-3;                    % [V/K] at SOC=50%, from Fig. 5e
+OCV        = OCV_ref + (T_K - T_ref_K) * dUdT_Ref50SOC;
 
 % =====================================================================
 % Step 4: Series resistance R(SOC, T, sgn(I))
-% Source: Schimpe (2018) Fig. 5b (R vs SOC at 25°C), Fig. 5c (R vs T at SOC=50%)
+% Source: Schimpe (2018) Fig. 5b (R vs SOC at 25°C,  Fig. 5c (R vs T at SOC=50%)
 % Method: 1C, 6-min pulse tests
 % =====================================================================
-% Fig. 5b: R(SOC) at T = 25°C
-SOC_R_grid = 0:0.10:1.00;
-R_ch_25C   = [36 40 42 42 43 45 47 51 49 53 65] * 1e-3;   % [Ω] charge
-R_dis_25C  = [80 65 55 52 52 50 48 43 42 40 38] * 1e-3;   % [Ω] discharge
 
-% Fig. 5c: R(T) at SOC = 50%
-T_R_grid_C  = [10  20  25  30  40  50  60];
-R_ch_50soc  = [67  51  46  43  36  33  30] * 1e-3;
-R_dis_50soc = [72  55  48  45  40  36  33] * 1e-3;
-
-% Reference values at SOC=50%, T=25°C
-R_ch_ref_50soc_25C  = interp1(SOC_R_grid, R_ch_25C,  0.50, 'linear');
-R_dis_ref_50soc_25C = interp1(SOC_R_grid, R_dis_25C, 0.50, 'linear');
-
-% Direction-aware lookup (using T_cell, not T_amb)
-if I >= 0   % charge
-    R_25C   = interp1(SOC_R_grid, R_ch_25C,  soc_c,  'linear', 'extrap');
-    R_at_T  = interp1(T_R_grid_C, R_ch_50soc, T_cell, 'linear', 'extrap');
-    f_T     = R_at_T / R_ch_ref_50soc_25C;
-else        % discharge
-    R_25C   = interp1(SOC_R_grid, R_dis_25C, soc_c,  'linear', 'extrap');
-    R_at_T  = interp1(T_R_grid_C, R_dis_50soc, T_cell, 'linear', 'extrap');
-    f_T     = R_at_T / R_dis_ref_50soc_25C;
-end
-
-% Multiplicative separable
-R_i = R_25C * f_T;
+% if I >= 0
+%     R_i = interp2(SOC_grid, T_grid_C, R_ch_2D, soc_c, T_cell, 'linear');
+% else
+%     R_i = interp2(SOC_grid, T_grid_C, R_dis_2D, soc_c, T_cell, 'linear');
+% end
 
 % =====================================================================
 % Step 5: Hysteresis voltage U_Hys(SOC) at T=25°C
@@ -129,24 +131,8 @@ Q_heat = I * dU;
 T_s_grid_C = [10   15   25   35   45   55  ];
 s_grid_30d = [0.20 0.22 0.40 0.65 1.07 2.32];   % [% per 30 days at SOC=50%]
 
-s_per_30d    = interp1(T_s_grid_C, s_grid_30d, T_cell, 'linear', 'extrap');
-s_rate_per_h = (s_per_30d / 100) / (30 * 24);   % [fraction / hour]
-
-% =====================================================================
-% Step 9: Anode open-circuit potential Ua(SOC)
-% For calendar aging coupling only.
-% Source: Safari et al. (2011), Schimpe Ch.6 Appendix Eq. A1.
-% =====================================================================
-xa0   = 8.5e-3;
-xa100 = 0.78;
-xa    = xa0 + soc_c * (xa100 - xa0);
-
-Ua = 0.6379 ...
-   + 0.5416  * exp(-305.5309 * xa) ...
-   + 0.0440  * tanh(-(xa - 0.1958) / 0.1088) ...
-   - 0.1978  * tanh((xa - 1.0571)  / 0.0854) ...
-   - 0.6875  * tanh((xa + 0.0117)  / 0.0529) ...
-   - 0.0175  * tanh((xa - 0.5692)  / 0.0875);
+self_discharge_rate_per_30d    = interp1(T_s_grid_C, s_grid_30d, T_cell, 'linear', 'extrap');
+self_discharge_rate_per_h = (self_discharge_rate_per_30d / 100) / (30 * 24);   % [fraction / hour]
 
 % =====================================================================
 % Step 10: 0D lumped thermal dynamics (Schimpe Eq. 2.15)
