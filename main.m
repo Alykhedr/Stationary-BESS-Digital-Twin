@@ -1,4 +1,9 @@
-clear; clc; 
+clear; clc;
+
+% Add project paths
+addpath(fullfile(fileparts(mfilename('fullpath')), 'Cell'));
+addpath(fullfile(fileparts(mfilename('fullpath')), 'Data'));
+
 load("WS_Variables.mat")
 
 
