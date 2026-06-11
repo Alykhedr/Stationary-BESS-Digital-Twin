@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMS Parallel Development Plan — Stationary BESS Digital Twin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #1a1a2e;
+    background: #fff;
+    padding: 40px 60px;
+    max-width: 950px;
+    margin: 0 auto;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    text-align: center;
+    padding: 60px 0 50px;
+    border-bottom: 3px solid #16213e;
+    margin-bottom: 40px;
+  }
+  .cover h1 {
+    font-size: 22pt;
+    font-weight: 700;
+    color: #16213e;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .cover h2 {
+    font-size: 14pt;
+    font-weight: 400;
+    color: #0f3460;
+    margin-bottom: 24px;
+  }
+  .cover-meta {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    font-size: 10pt;
+    color: #555;
+  }
+  .cover-meta span strong { color: #1a1a2e; }
+
+  /* ── Section headings ── */
+  h2.section {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #0f3460;
+    margin: 36px 0 14px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e8eaf6;
+  }
+  h3.sub {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: #16213e;
+    margin: 22px 0 10px;
+  }
+  h4.subsub {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: #0f3460;
+    margin: 16px 0 6px;
+  }
+
+  /* ── Core principle box ── */
+  .principle-box {
+    background: #e8f4fd;
+    border-left: 5px solid #0f3460;
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 18px 0 24px;
+    font-size: 11pt;
+    font-style: italic;
+    color: #0f3460;
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 20px;
+    font-size: 10pt;
+  }
+  th {
+    background: #16213e;
+    color: #fff;
+    font-weight: 600;
+    padding: 9px 12px;
+    text-align: left;
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f7f8fc; }
+  tr:last-child td { border-bottom: 2px solid #16213e; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #1a1a2e;
+    color: #e8f4fd;
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.55;
+    overflow-x: auto;
+    margin: 12px 0 18px;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9.5pt;
+    background: #eef0f8;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #0f3460;
+  }
+
+  /* ── Gate boxes ── */
+  .gate {
+    border: 2px solid #0f3460;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .gate .gate-title {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #0f3460;
+    margin-bottom: 10px;
+  }
+  .gate-pass table th { background: #1b5e20; }
+
+  /* ── Track columns ── */
+  .tracks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 16px 0;
+  }
+  .track-box {
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .track-a { background: #e3f2fd; border-top: 4px solid #1565c0; }
+  .track-b { background: #fce4ec; border-top: 4px solid #b71c1c; }
+  .track-box h4 {
+    font-size: 11pt;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .track-a h4 { color: #1565c0; }
+  .track-b h4 { color: #b71c1c; }
+  .track-box ul { padding-left: 18px; }
+  .track-box li { margin-bottom: 5px; font-size: 10pt; }
+
+  /* ── Rules box ── */
+  .rules-box {
+    background: #fff8e1;
+    border-left: 5px solid #f9a825;
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 18px 0;
+  }
+  .rules-box ol { padding-left: 20px; }
+  .rules-box li { margin-bottom: 8px; font-size: 10.5pt; }
+
+  /* ── Timeline ── */
+  .timeline {
+    background: #1a1a2e;
+    color: #e8f4fd;
+    border-radius: 6px;
+    padding: 16px 20px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.8;
+    margin: 16px 0;
+  }
+
+  /* ── Checklist ── */
+  .checklist { list-style: none; padding-left: 4px; }
+  .checklist li::before { content: "☐  "; font-size: 12pt; color: #0f3460; }
+  .checklist li { margin-bottom: 6px; font-size: 10.5pt; }
+
+  /* ── Misc ── */
+  p { margin-bottom: 10px; }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  .note {
+    font-size: 9.5pt;
+    color: #555;
+    font-style: italic;
+    margin-top: -6px;
+    margin-bottom: 14px;
+  }
+  .tag {
+    display: inline-block;
+    background: #0f3460;
+    color: white;
+    font-size: 8.5pt;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .tag.green { background: #1b5e20; }
+  .tag.red { background: #b71c1c; }
+  .tag.orange { background: #e65100; }
+
+  /* ── Print ── */
+  @media print {
+    body { padding: 20px 30px; font-size: 10pt; }
+    .cover { padding: 30px 0 30px; }
+    pre { font-size: 8pt; }
+    .tracks { display: grid; }
+    h2.section { page-break-after: avoid; }
+    .gate { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ COVER ══════════════════════════ -->
+<div class="cover">
+  <h1>BMS Parallel Development Plan</h1>
+  <h2>Stationary BESS Digital Twin — Sony US26650FTC1 (LFP)</h2>
+  <div class="cover-meta">
+    <span><strong>Project:</strong> Stationary-BESS-Digital-Twin</span>
+    <span><strong>Reference:</strong> Schimpe (2018) TUM Dissertation</span>
+    <span><strong>Date:</strong> June 2026</span>
+    <span><strong>Authors:</strong> Ali &amp; Diaa</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════ CORE PRINCIPLE ══════════════════════════ -->
+<h2 class="section">Core Principle</h2>
+
+<div class="principle-box">
+  Agree on interfaces first — build in parallel — integrate at gates.<br>
+  Every module is a black box defined only by its function signature. Once signatures are signed off, both people work independently. Stubs (functions that return correct-shaped neutral outputs) let the full model run end-to-end from day one.
+</div>
+
+<p>The plan is split into <strong>sprints</strong> (parallel, independent work) and <strong>gates</strong> (together, integration + pass/fail check). A new sprint never starts on a failing gate.</p>
+
+<!-- ══════════════════════════ STEP 0 ══════════════════════════ -->
+<h2 class="section">Step 0 — Interface Session <span class="tag orange">Together · ~3 hours</span></h2>
+
+<p>Do this before splitting. Nothing else starts until this is committed and both people confirm <code>main.m</code> runs clean.</p>
+
+<h3 class="sub">0.1 — Function Signatures (the contracts)</h3>
+<p class="note">These are frozen after this session. A signature change is a discussion, not a unilateral commit.</p>
+
+<pre>
+% ── SENSOR MODEL ────────────────────────────────────────────────────────
+% IN:  true_val     – scalar or vector (V, A, or °C)
+%      cfg_sensor   – struct: .bias, .noise_std, .q_lsb, .tau_h
+%      dt_h         – timestep [h]
+% OUT: meas_val     – same size as true_val (measured value with error)
+function meas_val = bms_sensor_model(true_val, cfg_sensor, dt_h)
+
+% ── OCV INVERSE ─────────────────────────────────────────────────────────
+% IN:  V_ocv        – measured/inferred OCV [V]
+%      I_last_sign  – last current direction: +1 (charge) / -1 (discharge)
+%      SOC_hint     – current SOC estimate (initial guess for interpolation)
+%      cfg          – bms_config struct
+% OUT: SOC_ocv      – SOC read from OCV curve [0..1]
+%      in_steep     – true if dOCV/dSOC large enough for correction (bool)
+function [SOC_ocv, in_steep] = bms_ocv_inverse(V_ocv, I_last_sign, SOC_hint, cfg)
+
+% ── SOC ESTIMATOR ───────────────────────────────────────────────────────
+% IN:  I_meas       – measured current [A]  (+ = charge)
+%      V_meas       – measured terminal voltage [V]
+%      T_meas       – measured temperature [°C]
+%      dt_h         – timestep [h]
+%      cfg          – bms_config struct
+%      state_in     – struct carrying memory: .SOC_est, .Q_est, .t_rest_h,
+%                     .I_last_sign, .anchor_soc, .anchor_Ah
+% OUT: SOC_est      – estimated SOC [0..1]
+%      state_out    – updated state struct (same fields as state_in)
+function [SOC_est, state_out] = bms_soc_estimator(I_meas, V_meas, T_meas, dt_h, cfg, state_in)
+
+% ── SOH ESTIMATOR ───────────────────────────────────────────────────────
+% IN:  I_meas       – measured current [A]
+%      SOC_est      – current SOC estimate [0..1]
+%      V_meas       – measured voltage [V]
+%      dt_h         – timestep [h]
+%      cfg          – bms_config struct
+%      state_in     – struct: .Q_est, .anchor1_soc, .anchor1_Ah, .counting
+% OUT: Q_est        – estimated capacity [Ah]
+%      SOH_est      – Q_est / Q_nom [0..1]
+%      state_out    – updated state struct
+function [Q_est, SOH_est, state_out] = bms_soh_estimator(I_meas, SOC_est, V_meas, dt_h, cfg, state_in)
+
+% ── DYNAMIC LIMITS (SOP) ────────────────────────────────────────────────
+% IN:  SOC_est      – estimated SOC [0..1]
+%      Q_est        – estimated capacity [Ah]
+%      V_meas       – measured voltage [V]
+%      T_meas       – measured temperature [°C]
+%      R_est        – estimated internal resistance [Ω]
+%      dt_h         – timestep [h]
+%      cfg          – bms_config struct
+% OUT: I_ch_max     – max allowable charge current [A]  (≥ 0)
+%      I_dis_max    – max allowable discharge current [A]  (≥ 0)
+function [I_ch_max, I_dis_max] = bms_limits(SOC_est, Q_est, V_meas, T_meas, R_est, dt_h, cfg)
+
+% ── MODE STATE MACHINE ──────────────────────────────────────────────────
+% IN:  I_meas       – measured current [A]
+%      V_meas       – measured voltage [V]
+%      T_meas       – measured temperature [°C]
+%      SOC_est      – estimated SOC [0..1]
+%      I_ch_max     – limit from bms_limits [A]
+%      I_dis_max    – limit from bms_limits [A]
+%      cfg          – bms_config struct
+%      state_in     – struct: .mode (string), .t_idle_h, .fault_flags
+% OUT: mode         – string: 'INIT'/'STANDBY'/'CHARGE'/'DISCHARGE'/'DERATE'/'FAULT'
+%      I_ch_out     – I_ch_max clamped to 0 in FAULT [A]
+%      I_dis_out    – I_dis_max clamped to 0 in FAULT [A]
+%      state_out    – updated state struct
+function [mode, I_ch_out, I_dis_out, state_out] = bms_mode(I_meas, V_meas, T_meas, ...
+                                                    SOC_est, I_ch_max, I_dis_max, cfg, state_in)
+
+% ── BMS INIT ────────────────────────────────────────────────────────────
+% IN:  cfg          – bms_config struct
+%      V_meas_t0    – measured voltage at t=0 (used to seed SOC_est via OCV)
+%      seed         – integer for rng (reproducibility)
+% OUT: biases       – struct: .b_V, .b_I, .b_T  (frozen offsets drawn once)
+%      est_state    – initial estimator state struct (for soc + soh estimators)
+%      mode_state   – initial mode state struct
+function [biases, est_state, mode_state] = bms_init(cfg, V_meas_t0, seed)
+</pre>
+
+<h3 class="sub">0.2 — Stub Implementations</h3>
+<p>Each function above gets a stub in <code>BMS/</code> with the exact signature returning neutral values:</p>
+<table>
+  <tr><th>Function</th><th>Stub output</th></tr>
+  <tr><td><code>bms_sensor_model</code></td><td>returns <code>true_val</code> unchanged (zero error)</td></tr>
+  <tr><td><code>bms_ocv_inverse</code></td><td>returns <code>SOC_hint</code>, <code>in_steep = false</code></td></tr>
+  <tr><td><code>bms_soc_estimator</code></td><td>returns <code>state_in.SOC_est</code>, <code>state_out = state_in</code></td></tr>
+  <tr><td><code>bms_soh_estimator</code></td><td>returns <code>cfg.cell.Q_nom</code>, <code>SOH_est = 1.0</code></td></tr>
+  <tr><td><code>bms_limits</code></td><td>returns <code>cfg.cell.I_chg_max_cont</code>, <code>cfg.cell.I_dis_max_cont</code></td></tr>
+  <tr><td><code>bms_mode</code></td><td>returns <code>'STANDBY'</code>, passes limits through unchanged</td></tr>
+  <tr><td><code>bms_init</code></td><td>returns zero biases, default state structs</td></tr>
+</table>
+
+<h3 class="sub">0.3 — bms_config.m</h3>
+<p>Written once, committed, read-only for both people after this session. Contains all thresholds (voltages, temperatures, currents, SOC windows, sensor error parameters, balancing parameters). Neither person hard-codes a threshold inside their own function — they read from <code>cfg</code>.</p>
+
+<div class="gate">
+  <div class="gate-title">🔒 Gate 0 Exit Criterion</div>
+  <ul class="checklist">
+    <li><code>main.m</code> runs end-to-end with stub BMS — no errors</li>
+    <li>Outputs are bit-identical to pre-BMS baseline</li>
+    <li>Both people pull, run, and confirm independently</li>
+    <li>Commit tagged: <code>gate-0-stubs</code></li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════ SPRINT 1 ══════════════════════════ -->
+<h2 class="section">Sprint 1 — Parallel Build <span class="tag">~3–4 days</span></h2>
+<p class="note">No shared files edited. Track A owns estimation files. Track B owns protection files and the .slx model.</p>
+
+<div class="tracks">
+  <div class="track-box track-a">
+    <h4>Track A — Estimation Pipeline</h4>
+    <ul>
+      <li><code>bms_ocv_inverse.m</code> — build first (needed by SOC estimator)</li>
+      <li><code>bms_sensor_model.m</code> — bias + noise + quantization</li>
+      <li><code>bms_soc_estimator.m</code> — CC + OCV-snap corrector</li>
+      <li><code>bms_soh_estimator.m</code> — anchor-pair capacity bookkeeping</li>
+      <li><code>Test/test_soc_estimator.m</code> — open-loop test script</li>
+    </ul>
+    <p style="margin-top:10px; font-size:9.5pt; color:#1565c0"><strong>No Simulink touched.</strong> Pure MATLAB functions + test scripts only.</p>
+  </div>
+  <div class="track-box track-b">
+    <h4>Track B — Protection &amp; Dispatch Pipeline</h4>
+    <ul>
+      <li><code>bms_init.m</code> — build first (seeds state structs)</li>
+      <li><code>bms_limits.m</code> — dynamic SOP with derating curves</li>
+      <li><code>bms_mode.m</code> — mode state machine (MATLAB function)</li>
+      <li><code>Battery_sim_2.slx</code> — add BMS subsystem, rewire dispatch</li>
+      <li>Slim <code>current_limiter.m</code> — remove SOC window clamp (moves to <code>bms_limits</code>)</li>
+      <li><code>Test/test_limits.m</code>, <code>Test/test_state_machine.m</code></li>
+    </ul>
+    <p style="margin-top:10px; font-size:9.5pt; color:#b71c1c"><strong>Owns the .slx model during Sprint 1.</strong> Track A does not touch Battery_sim_2.slx.</p>
+  </div>
+</div>
+
+<h3 class="sub">Track A — Self-Test Before Gate 1</h3>
+<p>Run <code>Test/test_soc_estimator.m</code> on a synthetic 24-hour I/V/T profile (no Simulink needed):</p>
+<table>
+  <tr><th>Check</th><th>Pass criterion</th></tr>
+  <tr><td>Bias-free coulomb counting</td><td>SOC_est matches manual integration exactly</td></tr>
+  <tr><td>SOC error between anchors</td><td>&lt; 5% with realistic sensor noise</td></tr>
+  <tr><td>OCV correction in steep zone</td><td>Error drops to &lt; 1% immediately after anchor</td></tr>
+  <tr><td>OCV correction on plateau</td><td>Correction does NOT fire mid-plateau (10–90% SOC)</td></tr>
+  <tr><td>Hysteresis compensation</td><td>After discharge, OCV⁻¹ uses post-discharge hysteresis offset</td></tr>
+</table>
+
+<h3 class="sub">Track B — Self-Test Before Gate 1</h3>
+<p>Run <code>Test/test_limits.m</code> and <code>Test/test_state_machine.m</code>:</p>
+<table>
+  <tr><th>Check</th><th>Pass criterion</th></tr>
+  <tr><td>T = −5°C charge</td><td><code>I_ch_max = 0</code> (below charge limit)</td></tr>
+  <tr><td>T = 42°C charge</td><td><code>I_ch_max</code> derated, continuous (no step)</td></tr>
+  <tr><td>SOC_est = 0.94</td><td><code>I_ch_max</code> tapers smoothly to 0 at SOC = 0.95</td></tr>
+  <tr><td>V drops below 2.0 V</td><td>Mode → FAULT, both limits → 0</td></tr>
+  <tr><td>V recovers above V_reconnect_lo</td><td>Mode → STANDBY after 1-tick dwell</td></tr>
+  <tr><td>Threshold boundary</td><td>No chattering (hysteresis working)</td></tr>
+  <tr><td>model runs with stub estimators</td><td>main.m completes 10-year sim, no errors</td></tr>
+</table>
+
+<!-- ══════════════════════════ GATE 1 ══════════════════════════ -->
+<h2 class="section">Gate 1 — Connect Estimation to Protection <span class="tag orange">Together · ~2 hours</span></h2>
+
+<p><strong>Trigger:</strong> Both tracks have passed their own self-tests and pushed to main.</p>
+
+<p><strong>What happens:</strong> Replace Track A stubs in the Simulink BMS subsystem with real implementations. Wire <code>MeasBus</code> output into the estimators. Wire <code>SOC_est</code> and <code>Q_est</code> into limits and mode. Run the 10-year simulation.</p>
+
+<div class="gate gate-pass">
+  <div class="gate-title">🔒 Gate 1 Pass Criteria</div>
+  <table>
+    <tr><th>Check</th><th>Pass criterion</th></tr>
+    <tr><td>Model runs without error</td><td>No crashes or warnings on 10-year run</td></tr>
+    <tr><td>SOC_true trajectory</td><td>Within ±2% of pre-BMS baseline</td></tr>
+    <tr><td>SOC_est vs SOC_true</td><td>Visible sawtooth drift + anchor correction events</td></tr>
+    <tr><td>SOH_est vs SOH_true</td><td>Tracks within 5% after first valid anchor pair</td></tr>
+    <tr><td>Mode timeline</td><td>STANDBY-dominated; CHARGE/DISCHARGE aligned with dispatch</td></tr>
+    <tr><td>No unexplained FAULTs</td><td>Zero FAULT events on a clean run</td></tr>
+    <tr><td>Dynamic limits</td><td>Continuous, no step jumps except on FAULT transitions</td></tr>
+  </table>
+  <p style="margin-top:12px; font-size:10pt; color:#1b5e20"><strong>If Gate 1 fails:</strong> root-cause before splitting again. Do not start Sprint 2 on a failing integration. Write down what broke and treat it as a tracked bug.</p>
+</div>
+
+<!-- ══════════════════════════ SPRINT 2 ══════════════════════════ -->
+<h2 class="section">Sprint 2 — Analysis &amp; Pack Preparation <span class="tag">After Gate 1</span></h2>
+
+<div class="tracks">
+  <div class="track-box track-a">
+    <h4>Track A — Estimation Analysis</h4>
+    <ul>
+      <li>Bias injection experiment: sweep <code>b_I</code> ∈ {1, 5, 10, 20} mA → plot SOC_est worst-case error &amp; anchor-recovery behaviour</li>
+      <li>Quantify: how often do valid SOH anchor pairs occur in the 10-year profile?</li>
+      <li>Optional: EKF as second estimator for thesis comparison</li>
+    </ul>
+  </div>
+  <div class="track-box track-b">
+    <h4>Track B — Pack Preparation</h4>
+    <ul>
+      <li>Vectorize plant cell model: scalar → 16×1 blocks per module (16s12p)</li>
+      <li>Add per-block parameter scatter (capacity ±0.5%, R ±2%, self-discharge ±5%)</li>
+      <li><code>bms_balancing.m</code>: dissipative balancing logic (33 Ω bleed, 5 mV threshold)</li>
+      <li>Wire <code>balance_cmd</code> back into per-block SOC derivatives</li>
+    </ul>
+  </div>
+</div>
+
+<h2 class="section">Gate 2 — Pack Integration <span class="tag orange">Together · ~2 hours</span></h2>
+
+<p>Connect the vectorized pack plant to the existing BMS. Only bus dimensions change — no algorithm equations change. Verify block voltages diverge under scatter then re-converge under balancing. <code>E_bal</code> accumulator is nonzero and plausible. With scatter disabled, balancing never triggers.</p>
+
+<!-- ══════════════════════════ TIMELINE ══════════════════════════ -->
+<h2 class="section">Timeline</h2>
+<div class="timeline">
+Day 1  (together)   │ Step 0: interfaces + stubs + bms_config.m
+                    │ Both confirm main.m runs → commit tag: gate-0-stubs
+                    │
+Days 2–4            │ Track A: estimation pipeline + unit tests  (no .slx)
+(parallel)          │ Track B: limits + mode + Simulink wiring + unit tests
+                    │
+Day 5  (together)   │ Gate 1: connect, run 10-year sim, check 7 criteria
+                    │ Fix integration issues → commit tag: gate-1-integrated
+                    │
+Days 6–9            │ Track A: bias sweep analysis + anchor-frequency study
+(parallel)          │ Track B: pack vectorization + scatter + balancing
+                    │
+Day 10 (together)   │ Gate 2: pack integration + balancing verification
+</div>
+
+<!-- ══════════════════════════ RULES ══════════════════════════ -->
+<h2 class="section">Rules — How We Avoid Blocking Each Other</h2>
+
+<div class="rules-box">
+  <ol>
+    <li><strong>File ownership during a sprint is exclusive.</strong> Track A owns <code>BMS/bms_*estimator.m</code>, <code>bms_sensor_model.m</code>, <code>bms_ocv_inverse.m</code>. Track B owns <code>bms_limits.m</code>, <code>bms_mode.m</code>, <code>bms_init.m</code>, and <code>Battery_sim_2.slx</code>. <code>bms_config.m</code> is read-only for both after Step 0.</li>
+    <li><strong>Stubs stay until your real implementation passes its own self-test.</strong> Never push a half-working function. If it breaks the other person's model run, that's a blocker for them.</li>
+    <li><strong>Gate sessions are time-boxed at 2 hours.</strong> If the gate isn't passing at the end, log what broke and schedule a follow-up. Don't let an unresolved integration issue drift.</li>
+    <li><strong>Function signatures are frozen after Step 0.</strong> If you discover a signature needs to change, flag it as a discussion item — don't change it unilaterally and don't start working around it silently.</li>
+    <li><strong>Tests travel with the function.</strong> When you push a real implementation, the corresponding test script ships in the same commit. A function without a passing test is treated as a stub.</li>
+  </ol>
+</div>
+
+<!-- ══════════════════════════ MODULE OWNERSHIP TABLE ══════════════════════════ -->
+<h2 class="section">Module Ownership Summary</h2>
+
+<table>
+  <tr><th>File</th><th>Owner</th><th>Sprint</th><th>Depends on</th></tr>
+  <tr><td><code>bms_config.m</code></td><td>Together (Step 0)</td><td>0</td><td>—</td></tr>
+  <tr><td><code>BMS/stubs/*</code></td><td>Together (Step 0)</td><td>0</td><td>bms_config</td></tr>
+  <tr><td><code>bms_ocv_inverse.m</code></td><td>Track A</td><td>1</td><td>bms_config</td></tr>
+  <tr><td><code>bms_sensor_model.m</code></td><td>Track A</td><td>1</td><td>bms_config</td></tr>
+  <tr><td><code>bms_soc_estimator.m</code></td><td>Track A</td><td>1</td><td>bms_ocv_inverse, bms_config</td></tr>
+  <tr><td><code>bms_soh_estimator.m</code></td><td>Track A</td><td>1</td><td>bms_soc_estimator, bms_config</td></tr>
+  <tr><td><code>bms_init.m</code></td><td>Track B</td><td>1</td><td>bms_config</td></tr>
+  <tr><td><code>bms_limits.m</code></td><td>Track B</td><td>1</td><td>bms_config</td></tr>
+  <tr><td><code>bms_mode.m</code></td><td>Track B</td><td>1</td><td>bms_limits, bms_config</td></tr>
+  <tr><td><code>Battery_sim_2.slx</code></td><td>Track B</td><td>1</td><td>all stubs wired in</td></tr>
+  <tr><td><code>Test/test_soc_estimator.m</code></td><td>Track A</td><td>1</td><td>bms_soc_estimator</td></tr>
+  <tr><td><code>Test/test_limits.m</code></td><td>Track B</td><td>1</td><td>bms_limits</td></tr>
+  <tr><td><code>Test/test_state_machine.m</code></td><td>Track B</td><td>1</td><td>bms_mode</td></tr>
+  <tr><td><code>bms_balancing.m</code></td><td>Track B</td><td>2</td><td>Gate 1 passed</td></tr>
+</table>
+
+<!-- ══════════════════════════ OPEN DECISIONS ══════════════════════════ -->
+<h2 class="section">Open Decisions — To Resolve at Step 0 Session</h2>
+
+<table>
+  <tr><th>#</th><th>Decision</th><th>Options</th><th>Leaning</th></tr>
+  <tr><td>1</td><td>OCV correction blend factor λ</td><td>(a) λ = 1 hard reset after full rest; (b) λ = 0.5 partial blend always</td><td>(a) — more defensible when rest conditions are fully met</td></tr>
+  <tr><td>2</td><td>State machine implementation</td><td>(a) MATLAB function with persistent state; (b) Stateflow chart</td><td>(a) — simpler at 1-hour timestep, no extra toolbox dependency</td></tr>
+  <tr><td>3</td><td>OCV table shared vs duplicated</td><td>(a) shared .mat loaded by both plant and BMS; (b) BMS ships its own (slightly perturbed) copy for realism</td><td>(a) first; (b) can be added as a sensitivity experiment later</td></tr>
+  <tr><td>4</td><td>R_i estimation timing</td><td>(a) Phase 1 alongside limits; (b) defer to Phase 2</td><td>(a) — bms_limits already uses R_est, better to have it from the start</td></tr>
+</table>
+
+<br>
+<div style="text-align:center; font-size:9pt; color:#888; border-top:1px solid #ddd; padding-top:14px; margin-top:30px;">
+  Stationary BESS Digital Twin · BMS Parallel Development Plan · June 2026
+</div>
+
+</body>
+</html>
