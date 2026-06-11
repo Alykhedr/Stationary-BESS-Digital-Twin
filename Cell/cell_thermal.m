@@ -115,6 +115,7 @@ U_Hys = interp1(SOC_Hys_grid, U_Hys_grid_mV, soc_c, 'linear') * 1e-3;  % [V]
 % =====================================================================
 dU         = I * R_i + sign(I) * U_Hys;
 V_terminal = OCV + dU;
+V_terminal = max(V_terminal, 2.0);          % hard cutoff floor: LFP lower limit [V]
 
 % =====================================================================
 % Step 7: Heat generation (Schimpe Eq. 2.14, irreversible only)

@@ -4,6 +4,7 @@ clear; clc;
 addpath(fullfile(fileparts(mfilename('fullpath')), 'Cell'));
 addpath(fullfile(fileparts(mfilename('fullpath')), 'Data'));
 
+run(fullfile(fileparts(mfilename('fullpath')), 'Data', 'Workspace_set'));
 load("WS_Variables.mat")
 
 

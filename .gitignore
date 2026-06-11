@@ -1,0 +1,15 @@
+# MATLAB build / compiler cache
+slprj/
+codegen/
+*.slxc
+
+# Simulink autosave & backups
+*.autosave
+*_backup_*.slx
+
+# MATLAB binary session / workspace snapshots
+*.asv
+
+# OS
+.DS_Store
+Thumbs.db
