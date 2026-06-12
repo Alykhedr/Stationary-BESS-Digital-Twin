@@ -94,36 +94,35 @@
 
 <pre>
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  LAYER 4 — EMS / DISPATCH                       (exists, slimmed)  ALI   │
+│  LAYER 4 — EMS / DISPATCH                              (exists, slimmed) │
 │  "How much power do I want to move?"                                     │
 │  current_limiter.m: power → current request, clamped to dynamic limits   │
 └──────────────▲─────────────────────────────────────────┬─────────────────┘
                │ SOC_est, mode,                          │ I_request [A]
                │ I_ch_max_dyn, I_dis_max_dyn             ▼
 ┌──────────────┴───────────────────────────────────────────────────────────┐
-│  LAYER 3 — PROTECTION & DECISION                                   ALI   │
+│  LAYER 3 — PROTECTION & DECISION                                         │
 │  "What is the battery allowed to do right now?"                          │
 │  bms_limits.m · bms_mode.m · bms_init.m                                  │
 └──────────────▲───────────────────────────────────────────────────────────┘
                │ SOC_est, Q_est, R_est        ◀── THE ONE HANDSHAKE ──▶
 ┌──────────────┴───────────────────────────────────────────────────────────┐
-│  LAYER 2 — STATE ESTIMATION                                       DIAA   │
+│  LAYER 2 — STATE ESTIMATION                                              │
 │  "What state is the battery in? (belief, not truth)"                     │
 │  bms_ocv_inverse.m · bms_soc_estimator.m · bms_soh_estimator.m           │
 │  bms_r_estimator.m                                                       │
 └──────────────▲───────────────────────────────────────────────────────────┘
                │ V_meas, I_meas, T_meas   (MeasBus)
 ┌──────────────┴───────────────────────────────────────────────────────────┐
-│  LAYER 1 — SENSORS                                                DIAA   │
+│  LAYER 1 — SENSORS                                                       │
 │  "Corrupt the truth the way real hardware does"                          │
 │  bms_sensor_model.m  (instantiated 3×: V, I, T)                          │
 └──────────────▲───────────────────────────────────────────────────────────┘
                │ V_true, I_true, T_true   (BatteryTruthBus)
 ┌──────────────┴───────────────────────────────────────────────────────────┐
-│  LAYER 0 — PLANT  (physics — built & validated together, 57/57)  EXISTS  │
+│  LAYER 0 — PLANT          (physics — built & validated together, 57/57) │
 │  cell_thermal.m · calendar_aging.m · cycle_aging.m · SOC integration     │
-│  Simulink wiring of ALL layers (.slx ownership):                   ALI   │
-│  Pack vectorization (Sprint 2, 16 blocks × 1s12p):                 ALI   │
+│  + Simulink wiring of all layers · + pack vectorization (Sprint 2)       │
 └──────────────────────────────────────────────────────────────────────────┘
 </pre>
 
@@ -375,11 +374,31 @@ function [biases, est_state0, mode_state0, sens_state0] = bms_init(cfg, V_meas_t
 </table>
 
 <!-- ════════════ 6. TIME SCALING ════════════ -->
-<h2 class="section">6. Time-Scaling Caveat (1 step = 1 hour)</h2>
+<h2 class="section">6. The Timescale Problem — and the Dual-Rate Solution</h2>
+
+<p><strong>The mismatch:</strong> a real BMS samples at 1–100 Hz and its protection path reacts in milliseconds. Our simulation steps at Δt = 1 h (needed to make a 10-year aging run tractable: 87,600 steps). Naively this means protection acts one full hour after a threshold crossing, and rest-detection / lag dynamics are quantized to whole hours.</p>
+
+<h3 class="sub">6.1 The key design decision that solves it</h3>
+<div class="principle-box">
+<strong>Every BMS function takes <code>dt_h</code> as an input parameter — no function hard-codes the timestep.</strong> The estimators, limits, and mode machine are rate-agnostic MATLAB functions: the SAME code runs at Δt = 1 h inside the 10-year Simulink model AND at Δt = 0.01 s (100 Hz) inside a script-driven test harness. Two execution contexts, one codebase, zero duplicated logic.
+</div>
+
+<h3 class="sub">6.2 The two execution contexts</h3>
+<table>
+  <tr><th></th><th>Context A — Longevity twin (Simulink)</th><th>Context B — High-rate harness (MATLAB script)</th></tr>
+  <tr><td>Timestep</td><td>1 h</td><td>10 ms – 1 s (up to 100 Hz)</td></tr>
+  <tr><td>Horizon</td><td>10 years</td><td>minutes – a few days</td></tr>
+  <tr><td>Purpose</td><td>Energy, aging, SOC/SOH estimation drift, dispatch interaction</td><td>Protection reaction timing, mode-transition dynamics, hysteresis/chattering, sensor lag (τ_T = 30 s becomes resolvable), rest-detection timing</td></tr>
+  <tr><td>Plant signal source</td><td>Full plant model in the loop</td><td>Synthetic high-rate profiles (current steps, voltage ramps, fault injections) — plant physics not needed for protection-path validation</td></tr>
+  <tr><td>What it cannot do</td><td>Resolve sub-hour protection events</td><td>Aging (timescale too short — irrelevant at minutes)</td></tr>
+</table>
+
+<h3 class="sub">6.3 What this buys us</h3>
 <ul>
-  <li>The BMS tick is 1 h. Real protection reacts in ms–s; here it acts one hour-step after threshold crossing. Fine for energy/aging studies; <strong>this twin cannot resolve fast protection events</strong> (short circuit, inrush) — documented limitation.</li>
-  <li>Rest-detection times, sensor lags, balancing duties are expressed in hours, quantized to whole steps.</li>
-  <li>High-resolution profile work (BMS-timescale validation) is a separate later phase — see roadmap §9.</li>
+  <li>The thesis claim upgrades from <em>"protection logic exists but is untested at realistic timescales"</em> to <em>"the identical protection code is validated at 100 Hz in a dedicated harness, then deployed at 1 h in the longevity twin."</em></li>
+  <li>The self-test scripts (<code>test_mode.m</code>, <code>test_limits.m</code>) simply run the harness at both rates — chattering and hysteresis-band bugs that are invisible at 1 h show up immediately at 100 Hz.</li>
+  <li>Sensor lag (τ_T = 30 s) and rest-detection (2 h) are expressed in hours in <code>cfg</code> and scale automatically with <code>dt_h</code> — no unit surgery between contexts.</li>
+  <li>Remaining documented limitation: the <em>coupled</em> plant+BMS simulation still cannot resolve sub-hour events (short circuit, inrush) — Context B validates the BMS side alone. Coupling a high-rate plant model is a possible later phase (a 1 s plant variant over representative days), listed in the roadmap §10.</li>
 </ul>
 
 <!-- ════════════ 7. MILESTONES ════════════ -->
@@ -426,8 +445,51 @@ function [biases, est_state0, mode_state0, sens_state0] = bms_init(cfg, V_meas_t
   <p><strong>Pass:</strong> blocks diverge under scatter, re-converge under balancing (ΔV → &lt;5 mV steady-state); E_bal over 1 yr nonzero &amp; plausible (order: few Wh/module/yr); scatter off → balancing never triggers.</p>
 </div>
 
-<!-- ════════════ 8. FILES ════════════ -->
-<h2 class="section">8. File Structure &amp; Ownership</h2>
+<!-- ════════════ 8. PACK PHASE ════════════ -->
+<h2 class="section">8. The Pack Phase — Building &amp; Testing (Sprint 2 → M2)</h2>
+
+<p>The step after the single-cell BMS is validated (M1) is scaling the plant to pack level, following Schimpe's Energy Neighbor hierarchy. <strong>Approach: vectorize the existing validated cell model — NOT Simscape Battery Pack Builder</strong>, which would replace our Schimpe physics with a generic equivalent circuit and discard the 57-check validation.</p>
+
+<h3 class="sub">8.1 Scaling hierarchy (Schimpe Table 2.2/2.3)</h3>
+<pre>
+cell (3.0 Ah, 3.2 V)
+  └─ ×12 parallel  → block   (1s12p, 36 Ah)   ← lumped: one R, one OCV, one thermal node
+       └─ ×16 series  → module  (16s12p, ~51 V)  ← the BMS slave's domain: 16 V-taps, 2–4 NTC
+            └─ ×13 series → string/rack (~665 V)  ← the BMS master's domain: 1 current sensor
+</pre>
+<p class="note">The simulation models ONE module (16 blocks) explicitly; rack level is algebraic scaling (×13 series voltage, current identical in a series string). Lumping 12 parallel cells into one block is Schimpe's own simplification — parallel cells share a voltage tap, intra-block imbalance is not observable by the real BMS either.</p>
+
+<h3 class="sub">8.2 Build steps (plant side)</h3>
+<ol>
+  <li><strong>Vectorize state:</strong> SOC, V, R, T, aging states go from scalar → [16×1]. The physics functions already operate element-wise — the change is dimension declaration + broadcasting, not new equations.</li>
+  <li><strong>Series electrical coupling:</strong> same string current through all blocks; module voltage = Σ V_block. The weakest block's voltage hits limits first — this is exactly what the worst-cell protection logic must catch.</li>
+  <li><strong>Per-block parameter scatter</strong> (frozen at init, seeded → reproducible): Q_block ~ N(36 Ah, σ=0.5 %), R_block ~ N(nom, σ=2 %), self-discharge ~ N(nom, σ=5 %). Self-discharge scatter is the dominant long-run divergence driver — without scatter, balancing would silently never trigger (wrong answer for a 10-year efficiency study).</li>
+  <li><strong>Thermal:</strong> per-block 0D nodes with a common ambient; optionally a simple block-to-block coupling. Temperature sensors are SPARSE (2–4 NTC per module, not 16) — sensor-placement sparsity is realistic and matters for worst-cell detection.</li>
+  <li><strong>Aging per block:</strong> calendar + cycle aging run per block on its own SOC/T trajectory → blocks age apart over years, feeding back into divergence.</li>
+</ol>
+
+<h3 class="sub">8.3 Build steps (BMS side)</h3>
+<ol>
+  <li><strong>Slave layer:</strong> sensor models become vector instances (16 V-taps, 2–4 T). <code>bms_balancing.m</code> goes live: balance block k if V_meas[k] &gt; min(V_meas) + 5 mV AND mode ∈ {CHARGE, STANDBY}; I_bleed = V/33 Ω ≈ 100 mA; bleed heat to slave PCB (not the cell thermal node); E_bal accumulator.</li>
+  <li><strong>Master aggregation:</strong> worst-cell selection — V_meas_max, V_meas_min, T_meas_max, T_meas_min across blocks feed the SAME §5.1 limit equations. <strong>No equation changes, only input aggregation.</strong></li>
+  <li><strong>Estimation at pack:</strong> string SOC from string current + worst/mean block voltages; per-block SOC estimation optional (thesis decision — real systems differ here).</li>
+  <li><strong>Balance feedback into plant:</strong> block SOC derivative gains −I_bleed[k]/Q_block.</li>
+</ol>
+
+<h3 class="sub">8.4 Pack test plan (the M2 verification set)</h3>
+<table>
+  <tr><th>#</th><th>Test</th><th>Pass criterion</th></tr>
+  <tr><td>P1</td><td><strong>Degenerate-pack regression:</strong> 16 identical blocks, scatter OFF, balancing OFF</td><td>Every block ≡ the validated single cell; module V = 16 × cell V. Bit-level match to single-cell run</td></tr>
+  <tr><td>P2</td><td><strong>Divergence:</strong> scatter ON, balancing OFF, 1-yr run</td><td>Block voltages/SOCs visibly diverge; divergence rate consistent with scatter σ (self-discharge dominates)</td></tr>
+  <tr><td>P3</td><td><strong>Convergence:</strong> scatter ON, balancing ON</td><td>ΔV_blocks → &lt; 5 mV steady-state; E_bal &gt; 0 and plausible (order: few Wh/module/yr at ~100 mA bleed)</td></tr>
+  <tr><td>P4</td><td><strong>Null test:</strong> scatter OFF, balancing ON</td><td>Balancing never triggers; E_bal ≡ 0</td></tr>
+  <tr><td>P5</td><td><strong>Worst-cell protection:</strong> force one block's R +20 % (weak block)</td><td>That block's voltage hits limits first; master derates/faults on the WORST block, not the average</td></tr>
+  <tr><td>P6</td><td><strong>Sparse-T detection:</strong> heat a block with no NTC on it</td><td>Document the detection gap — what the BMS cannot see is itself a result</td></tr>
+  <tr><td>P7</td><td><strong>10-yr pack run:</strong> full system, scatter + balancing + aging</td><td>Completes; SOH spread across blocks plausible; efficiency ledger includes E_bal + aux power</td></tr>
+</table>
+
+<!-- ════════════ 9. FILES ════════════ -->
+<h2 class="section">9. File Structure &amp; Ownership</h2>
 <pre>
 Stationary-BESS-Digital-Twin/
 ├── main.m                      (exists; + bms_init call)              ALI
@@ -466,8 +528,8 @@ Stationary-BESS-Digital-Twin/
   </ol>
 </div>
 
-<!-- ════════════ 9. ROADMAP ════════════ -->
-<h2 class="section">9. Roadmap Beyond M2</h2>
+<!-- ════════════ 10. ROADMAP ════════════ -->
+<h2 class="section">10. Roadmap Beyond M2</h2>
 <div class="timeline">
 M0   (½ day, together)  │ contracts + config + stubs + fixture export        → gate-0
 S1   (~4 days, parallel)│ DIAA: sensors + estimators vs fixture
@@ -485,8 +547,8 @@ Later phases (same pattern — one layer, one owner, one bus):
   · Error-budget &amp; efficiency ledger (aux + balancing losses vs Schimpe Table 3)
 </div>
 
-<!-- ════════════ 10. DECISIONS ════════════ -->
-<h2 class="section">10. Decision Log (resolved at review of v1)</h2>
+<!-- ════════════ 11. DECISIONS ════════════ -->
+<h2 class="section">11. Decision Log (resolved at review of v1)</h2>
 <table>
   <tr><th>#</th><th>Decision</th><th>Resolution</th></tr>
   <tr><td>1</td><td>Q_nom</td><td><strong>3.0 Ah</strong> — Schimpe's nominal (tested new-cell capacity; 1C = 3.0 A)</td></tr>
