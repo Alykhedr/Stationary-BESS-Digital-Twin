@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMS Layered Development Plan — Stationary BESS Digital Twin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt; line-height: 1.6; color: #1a1a2e;
+    background: #fff; padding: 40px 60px; max-width: 980px; margin: 0 auto;
+  }
+  .cover { text-align: center; padding: 50px 0 40px; border-bottom: 3px solid #16213e; margin-bottom: 36px; }
+  .cover h1 { font-size: 22pt; font-weight: 700; color: #16213e; margin-bottom: 8px; }
+  .cover h2 { font-size: 13pt; font-weight: 400; color: #0f3460; margin-bottom: 22px; }
+  .cover-meta { display: flex; justify-content: center; gap: 30px; font-size: 9.5pt; color: #555; flex-wrap: wrap; }
+  .cover-meta span strong { color: #1a1a2e; }
+  h2.section { font-size: 14pt; font-weight: 700; color: #0f3460; margin: 34px 0 14px; padding-bottom: 6px; border-bottom: 2px solid #e8eaf6; }
+  h3.sub { font-size: 11.5pt; font-weight: 700; color: #16213e; margin: 20px 0 10px; }
+  h4.subsub { font-size: 10.5pt; font-weight: 600; color: #0f3460; margin: 14px 0 6px; }
+  .principle-box { background: #e8f4fd; border-left: 5px solid #0f3460; border-radius: 4px; padding: 14px 18px; margin: 16px 0 22px; font-size: 10.5pt; color: #0f3460; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 9.5pt; }
+  th { background: #16213e; color: #fff; font-weight: 600; padding: 8px 11px; text-align: left; }
+  td { padding: 7px 11px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f8fc; }
+  tr:last-child td { border-bottom: 2px solid #16213e; }
+  pre { background: #1a1a2e; color: #e8f4fd; border-radius: 6px; padding: 13px 15px; font-family: 'Consolas','Courier New',monospace; font-size: 8.6pt; line-height: 1.5; overflow-x: auto; margin: 10px 0 16px; }
+  code { font-family: 'Consolas','Courier New',monospace; font-size: 9.3pt; background: #eef0f8; padding: 1px 5px; border-radius: 3px; color: #0f3460; }
+  .gate { border: 2px solid #0f3460; border-radius: 6px; padding: 15px 19px; margin: 18px 0; }
+  .gate .gate-title { font-size: 12pt; font-weight: 700; color: #0f3460; margin-bottom: 9px; }
+  .owner-diaa { display:inline-block; background: #1565c0; color: #fff; font-size: 8.5pt; font-weight: 700; padding: 2px 10px; border-radius: 10px; vertical-align: middle; }
+  .owner-ali  { display:inline-block; background: #b71c1c; color: #fff; font-size: 8.5pt; font-weight: 700; padding: 2px 10px; border-radius: 10px; vertical-align: middle; }
+  .owner-both { display:inline-block; background: #2e7d32; color: #fff; font-size: 8.5pt; font-weight: 700; padding: 2px 10px; border-radius: 10px; vertical-align: middle; }
+  .layer-box { border-radius: 6px; padding: 12px 16px; margin: 10px 0; border-left: 6px solid; }
+  .layer-diaa { background: #e3f2fd; border-color: #1565c0; }
+  .layer-ali  { background: #fce4ec; border-color: #b71c1c; }
+  .layer-both { background: #e8f5e9; border-color: #2e7d32; }
+  .layer-box h4 { font-size: 11pt; font-weight: 700; margin-bottom: 4px; }
+  .layer-box p, .layer-box li { font-size: 9.8pt; }
+  .rules-box { background: #fff8e1; border-left: 5px solid #f9a825; border-radius: 4px; padding: 13px 17px; margin: 16px 0; }
+  .rules-box ol { padding-left: 20px; }
+  .rules-box li { margin-bottom: 7px; font-size: 10pt; }
+  .timeline { background: #1a1a2e; color: #e8f4fd; border-radius: 6px; padding: 15px 19px; font-family: 'Consolas','Courier New',monospace; font-size: 8.6pt; line-height: 1.75; margin: 14px 0; }
+  .checklist { list-style: none; padding-left: 4px; }
+  .checklist li::before { content: "☐  "; font-size: 11pt; color: #0f3460; }
+  .checklist li { margin-bottom: 5px; font-size: 10pt; }
+  p { margin-bottom: 9px; }
+  ul, ol { padding-left: 22px; margin-bottom: 11px; }
+  li { margin-bottom: 4px; }
+  .note { font-size: 9.3pt; color: #555; font-style: italic; margin: -4px 0 12px; }
+  .tag { display: inline-block; background: #0f3460; color: white; font-size: 8.3pt; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .tag.orange { background: #e65100; }
+  @media print {
+    body { padding: 18px 28px; font-size: 9.6pt; }
+    .cover { padding: 24px 0 24px; }
+    pre { font-size: 7.6pt; }
+    h2.section { page-break-after: avoid; }
+    .gate, .layer-box, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ COVER ════════════ -->
+<div class="cover">
+  <h1>BMS Layered Development Plan</h1>
+  <h2>Stationary BESS Digital Twin — Sony US26650FTC1 (LFP) · Schimpe (2018) reference</h2>
+  <div class="cover-meta">
+    <span><strong>Version:</strong> 2.0 (merges BMS Integration Plan v1 + layered ownership)</span>
+    <span><strong>Date:</strong> June 2026</span>
+    <span><strong>Diaa:</strong> Layers 1–2 (Sensors + Estimation)</span>
+    <span><strong>Ali:</strong> Layers 0, 3, 4 (Plant/Pack + Protection + Integration)</span>
+  </div>
+</div>
+
+<!-- ════════════ 0. DESIGN PHILOSOPHY ════════════ -->
+<h2 class="section">0. Design Philosophy — The Two Rules That Drive Everything</h2>
+
+<div class="principle-box">
+<strong>Rule 1 — Truth vs Belief.</strong> The BMS is an observer: it only sees measurements, never the plant's truth. It reads V, I, T through sensor models and <em>estimates</em> SOC/SOH. The error <code>SOC_true − SOC_est</code> is itself a primary digital-twin output.<br><br>
+<strong>Rule 2 — Layers, not shared functions.</strong> Each layer talks only to its neighbours through one defined bus. Each layer has exactly one owner. The single coupling point between the two of us is the Layer 2→3 handshake: <code>SOC_est, Q_est, R_est</code>. We agree on interfaces first, build in parallel, and integrate only at planned milestones.
+</div>
+
+<p>Three hard architecture rules (carried over from v1):</p>
+<ol>
+  <li><strong>The BMS never reads <code>SOC_true</code> from the plant.</strong> Truth signals are logged for error analysis only — firewalled from all BMS inputs.</li>
+  <li><strong>The EMS never talks to the battery directly.</strong> Every current request passes through the BMS limit chain. The static clamps in <code>current_limiter.m</code> (SOC window, fixed I limits) move into the BMS and become dynamic.</li>
+  <li><strong>The plant always obeys physics, never the BMS's beliefs.</strong> If the BMS believes SOC = 20% but truth is 5%, the voltage collapses and the BMS must catch it via the voltage protection path — exactly as in reality.</li>
+</ol>
+
+<!-- ════════════ 1. LAYER FIGURE ════════════ -->
+<h2 class="section">1. The Layer Architecture &amp; Ownership</h2>
+
+<pre>
+┌──────────────────────────────────────────────────────────────────────────┐
+│  LAYER 4 — EMS / DISPATCH                       (exists, slimmed)  ALI   │
+│  "How much power do I want to move?"                                     │
+│  current_limiter.m: power → current request, clamped to dynamic limits   │
+└──────────────▲─────────────────────────────────────────┬─────────────────┘
+               │ SOC_est, mode,                          │ I_request [A]
+               │ I_ch_max_dyn, I_dis_max_dyn             ▼
+┌──────────────┴───────────────────────────────────────────────────────────┐
+│  LAYER 3 — PROTECTION & DECISION                                   ALI   │
+│  "What is the battery allowed to do right now?"                          │
+│  bms_limits.m · bms_mode.m · bms_init.m                                  │
+└──────────────▲───────────────────────────────────────────────────────────┘
+               │ SOC_est, Q_est, R_est        ◀── THE ONE HANDSHAKE ──▶
+┌──────────────┴───────────────────────────────────────────────────────────┐
+│  LAYER 2 — STATE ESTIMATION                                       DIAA   │
+│  "What state is the battery in? (belief, not truth)"                     │
+│  bms_ocv_inverse.m · bms_soc_estimator.m · bms_soh_estimator.m           │
+│  bms_r_estimator.m                                                       │
+└──────────────▲───────────────────────────────────────────────────────────┘
+               │ V_meas, I_meas, T_meas   (MeasBus)
+┌──────────────┴───────────────────────────────────────────────────────────┐
+│  LAYER 1 — SENSORS                                                DIAA   │
+│  "Corrupt the truth the way real hardware does"                          │
+│  bms_sensor_model.m  (instantiated 3×: V, I, T)                          │
+└──────────────▲───────────────────────────────────────────────────────────┘
+               │ V_true, I_true, T_true   (BatteryTruthBus)
+┌──────────────┴───────────────────────────────────────────────────────────┐
+│  LAYER 0 — PLANT  (physics — built & validated together, 57/57)  EXISTS  │
+│  cell_thermal.m · calendar_aging.m · cycle_aging.m · SOC integration     │
+│  Simulink wiring of ALL layers (.slx ownership):                   ALI   │
+│  Pack vectorization (Sprint 2, 16 blocks × 1s12p):                 ALI   │
+└──────────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<div class="layer-box layer-both">
+  <h4>Layer 0 — Plant <span class="owner-both">BUILT TOGETHER · VALIDATED</span></h4>
+  <p>The cell electro-thermal + aging model exists and passed the 57-check validation against Schimpe 2018 (OCV, R tables, thermal τ = 1068 s, ΔT<sub>SS</sub> = 7.07 K at 1C, calendar 3.95 %/yr, √t kernel, Arrhenius ratio). It is <strong>not modified</strong> by the BMS work — only its outputs get routed onto a bus. Pack vectorization extends it in Sprint 2.</p>
+</div>
+<div class="layer-box layer-diaa">
+  <h4>Layers 1 + 2 — Sensors &amp; Estimation <span class="owner-diaa">DIAA</span></h4>
+  <p>Pure MATLAB — <strong>no Simulink needed at any point</strong>. Develops and tests against recorded plant data (.mat fixture exported by Ali at M0). The detective job: fight sensor bias and the LFP flat-OCV plateau to produce trustworthy <code>SOC_est, Q_est, R_est</code>.</p>
+</div>
+<div class="layer-box layer-ali">
+  <h4>Layers 3 + 4 + Integration <span class="owner-ali">ALI</span></h4>
+  <p>Protection algorithms (dynamic limits, mode machine with hysteresis), the slimmed EMS, <strong>all Simulink wiring</strong> (bus objects, BMS subsystem, rewiring dispatch), and the pack vectorization in Sprint 2. The bodyguard + electrician job.</p>
+</div>
+
+<!-- ════════════ 2. BUSES ════════════ -->
+<h2 class="section">2. Bus Definitions (the contracts between layers)</h2>
+
+<pre>
+BatteryTruthBus  (Layer 0 → Layer 1)        MeasBus  (Layer 1 → Layer 2)
+├── V_cell     [N_taps × 1]  V              ├── V_meas   [N_taps × 1]  V
+├── I_string   [1]           A  (+=charge)  ├── I_meas   [1]           A
+├── T_sense    [N_temp × 1]  °C             └── T_meas   [N_temp × 1]  °C
+├── SOC_true   [1]  – (logging ONLY)
+├── SOH_true   [1]  – (logging ONLY)        BmsOutBus  (Layer 3 → Layer 4)
+└── Q_heat     [1]  W                       ├── SOC_est       [1]  –
+                                            ├── SOH_est       [1]  –
+EstBus  (Layer 2 → Layer 3)                 ├── I_ch_max_dyn  [1]  A
+├── SOC_est    [1]  –                       ├── I_dis_max_dyn [1]  A
+├── Q_est      [1]  Ah                      ├── mode          [1]  int enum
+├── SOH_est    [1]  –                       └── fault_flags   [1]  bitfield
+├── R_est_ch   [1]  Ω
+├── R_est_dis  [1]  Ω
+└── corrected  [1]  bool (OCV snap fired)
+</pre>
+<p class="note">Single-cell phase: N_taps = 1, N_temp = 1. At pack phase only these dimensions change (16 taps, 2–4 NTC per module) — no algorithm signatures change. <code>mode</code> is an int enum (INIT=0, STANDBY=1, CHARGE=2, DISCHARGE=3, DERATE=4, FAULT=5) — Simulink-friendly, no strings on buses.</p>
+
+<!-- ════════════ 3. CONFIG ════════════ -->
+<h2 class="section">3. bms_config.m — Single Source of Truth <span class="owner-both">WRITTEN TOGETHER AT M0</span></h2>
+<p>All thresholds live in one parameter file returning a struct — never hard-coded in any function. Read-only for both after M0. Values from Sony datasheet + Schimpe:</p>
+
+<pre>
+cfg.cell.Q_nom            = 3.0;    % Ah — Schimpe nominal (tested new-cell capacity;
+                                    %      rated is 2.85 Ah, Schimpe uses 3.0 → 1C = 3.0 A)
+cfg.cell.V_max_protect    = 3.60;   % V  — datasheet charge limit
+cfg.cell.V_max_warn       = 3.55;   % V  — derating knee
+cfg.cell.V_min_protect    = 2.00;   % V  — datasheet discharge limit
+cfg.cell.V_min_warn       = 2.50;   % V  — derating knee (Schimpe PE min 2.88 V binds first
+                                    %      at system level; keep both)
+cfg.cell.V_reconnect_hi   = 3.45;   % V  — hysteresis release after OV fault
+cfg.cell.V_reconnect_lo   = 2.80;   % V  — hysteresis release after UV fault
+
+cfg.cell.T_chg_min        =  0;     % °C — datasheet: no charge below 0 °C
+cfg.cell.T_chg_max        = 45;     % °C
+cfg.cell.T_dis_min        = -20;    % °C
+cfg.cell.T_dis_max        = 60;     % °C
+cfg.cell.T_warn_band      =  5;     % °C — derating starts this far inside each limit
+cfg.cell.T_fault_hyst     =  3;     % °C — recovery hysteresis
+
+cfg.cell.I_chg_max_cont   = 3.0;    % A  (1C per Schimpe convention)
+cfg.cell.I_dis_max_cont   = 20.0;   % A  — datasheet (PE limits to ~1C in practice,
+                                    %      but BMS must know hardware truth)
+
+cfg.soc.window_min        = 0.05;   % operational window (moves here from current_limiter)
+cfg.soc.window_max        = 0.95;
+cfg.soc.protect_min       = 0.02;   % ≈ Schimpe PE-driven min SOC 1.8 %
+cfg.soc.protect_max       = 0.98;
+
+cfg.sens.V.bias_max       = 2e-3;   % V  — ±2 mV uniform draw at init, frozen (AFE-class)
+cfg.sens.V.noise_std      = 0.5e-3; % V
+cfg.sens.V.q_lsb          = 0.1e-3; % V  — 16-bit over 0–5 V
+cfg.sens.I.gain_err_max   = 0.005;  % ±0.5 % shunt+amp tolerance
+cfg.sens.I.bias_max       = 10e-3;  % A  — THE parameter that kills coulomb counting:
+                                    %      10 mA on 3 Ah = 0.33 %/h SOC drift. Sweep later.
+cfg.sens.I.noise_std      = 5e-3;   % A
+cfg.sens.T.bias_max       = 1.0;    % °C — NTC + divider tolerance
+cfg.sens.T.noise_std      = 0.2;    % °C
+cfg.sens.T.tau_h          = 30/3600;% h  — NTC lag (≈ negligible at 1 h steps; included)
+
+cfg.est.ocv_corr_zones    = [0.00 0.10; 0.90 1.00];  % steep zones only (LFP!)
+cfg.est.rest_current_thr  = 0.015;  % A (≈C/200) — "at rest" detection
+cfg.est.rest_time_min     = 2;      % h at rest before OCV correction allowed
+cfg.est.lambda_policy     = "ramp"; % λ = min(1,(t_rest−t_min)/t_min): full reset
+                                    %      after 2×rest_time_min (resolved from v1 review)
+cfg.est.soh_anchor_min_dz = 0.5;    % min SOC span between anchors for capacity calc
+cfg.est.soh_forget        = 0.9;    % Q_est ← 0.9·prev + 0.1·new
+cfg.est.R_nominal_ch      = 43e-3;  % Ω — R_est initial value (Layer 3 never sees garbage)
+cfg.est.R_nominal_dis     = 50e-3;  % Ω
+
+cfg.bal.V_threshold       = 5e-3;   % V — balance if block V > min(V) + 5 mV (pack phase)
+cfg.bal.R_bleed           = 33;     % Ω — dissipative bleed resistor
+cfg.bal.enable_modes      = [2 1];  % CHARGE, STANDBY (int enums)
+
+cfg.aux.P_slave           = 2.76;   % W per module (287 W / 104, Schimpe Table 3)
+cfg.aux.P_master          = 81;     % W system-level C&M share
+</pre>
+
+<!-- ════════════ 4. DIAA FUNCTIONS ════════════ -->
+<h2 class="section">4. Layer 1–2 Function Specifications <span class="owner-diaa">DIAA</span></h2>
+
+<h3 class="sub">4.1 bms_sensor_model.m — generic sensor (instantiated 3×)</h3>
+<pre>
+% V: V_meas = quantize( V_true + b_V + n_V(t), q_V )
+% I: I_meas = (1 + e_gain)·I_true + b_I + n_I(t)
+% T: T_meas = lag( T_true + b_T + n_T(t), tau_T )
+function [meas_val, state_out] = bms_sensor_model(true_val, cfg_s, dt_h, state_in)
+% IN:  true_val – scalar (vector at pack)   cfg_s – .bias .gain_err .noise_std .q_lsb .tau_h
+%      dt_h – timestep [h]                  state_in – .y_prev (lag filter memory)
+% OUT: meas_val – same size as true_val     state_out – updated lag state
+</pre>
+<p class="note">Biases are drawn ONCE at init (seeded rng) and frozen — they are systematic errors, not noise. <strong>Done when:</strong> biases zeroed → meas ≡ truth; histogram of (meas − truth) matches configured bias + σ.</p>
+
+<h3 class="sub">4.2 bms_ocv_inverse.m — voltage → SOC with LFP guard rails</h3>
+<pre>
+function [SOC_ocv, in_steep] = bms_ocv_inverse(V_meas_rest, I_last_sign, SOC_hint, cfg)
+% Hysteresis removed internally: V_ocv = V_meas_rest − sign(I_last)·U_Hys(SOC_hint)
+% Inverse interpolation of the shared 19-point OCV table (one .mat, loaded by
+% plant AND BMS — single source, decision #3 resolved).
+% in_steep = true only if SOC_ocv falls inside cfg.est.ocv_corr_zones.
+</pre>
+<p class="note"><strong>The LFP detail that matters:</strong> mid-plateau (10–90 % SOC) a 2 mV sensor error maps to &gt;10 % SOC error → correction forbidden there. In the steep zones the same 2 mV maps to &lt;1 % → correction allowed.</p>
+
+<h3 class="sub">4.3 bms_soc_estimator.m — coulomb counting + OCV snap</h3>
+<pre>
+function [SOC_est, corrected, state_out] = bms_soc_estimator( ...
+            I_meas, V_meas, T_meas, Q_est, dt_h, cfg, state_in)
+% IN:  Q_est – from SOH estimator (previous step)   state_in – .SOC_est .t_rest_h .I_last_sign
+% OUT: corrected – true on the step an OCV snap fired (consumed by SOH estimator as anchor)
+%
+% Predictor (every tick):  SOC_est += (η_c · I_meas · Δt)/Q_est − s_rate_nom · Δt
+%   (estimator uses NOMINAL 25 °C self-discharge, not the plant's true T-dependent
+%    rate — intentional, realistic model mismatch)
+% Corrector (event):       trigger = |I_meas| &lt; rest_thr for ≥ rest_time_min
+%                                    AND in_steep zone
+%                          λ = min(1, (t_rest − t_min)/t_min)   ← ramp to full reset
+%                          SOC_est ← (1−λ)·SOC_est + λ·SOC_ocv
+</pre>
+
+<h3 class="sub">4.4 bms_soh_estimator.m — anchor-pair capacity bookkeeping</h3>
+<pre>
+function [Q_est, SOH_est, state_out] = bms_soh_estimator( ...
+            I_meas, SOC_est, corrected, dt_h, cfg, state_in)
+% Between two anchor events (corrected==true) with |ΔSOC| ≥ 0.5:
+%     Q_new  = ΔAh_counted / (SOC_anchor2 − SOC_anchor1)
+%     Q_est  ← 0.9·Q_est + 0.1·Q_new          (forgetting factor)
+%     SOH_est = Q_est / Q_nom
+% state_in: .Q_est .anchor_soc .anchor_Ah .Ah_count .have_anchor
+</pre>
+<p class="note"><strong>Open verification task (from v1 review):</strong> anchor pairs need rests in BOTH steep zones. The dispatch profile parks at 5 % and 95 % regularly — verify anchor frequency on the recorded fixture in week 1. If anchors are rare, that finding is itself a thesis result.</p>
+
+<h3 class="sub">4.5 bms_r_estimator.m — ΔV/ΔI (promoted from optional → Sprint 1)</h3>
+<pre>
+function [R_est_ch, R_est_dis, state_out] = bms_r_estimator(V_meas, I_meas, cfg, state_in)
+% On current steps |ΔI_meas| &gt; 0.5 A:  R_raw = ΔV_meas/ΔI_meas → low-pass, per direction.
+% Initialized to cfg.est.R_nominal_* so Layer 3 never receives garbage.
+% Promoted to Sprint 1 because bms_limits' voltage-headroom equations consume R_est
+% from day one (v1 review decision #4).
+</pre>
+
+<h3 class="sub">4.6 Diaa's self-test — Test/test_estimators.m</h3>
+<table>
+  <tr><th>Check</th><th>Pass criterion</th></tr>
+  <tr><td>Bias-free coulomb counting</td><td>SOC_est ≡ manual integration exactly</td></tr>
+  <tr><td>Drift between anchors (realistic bias)</td><td>&lt; 5 %</td></tr>
+  <tr><td>OCV snap in steep zone</td><td>error → &lt; 1 % immediately after snap</td></tr>
+  <tr><td>Snap on plateau</td><td>NEVER fires between 10–90 % SOC</td></tr>
+  <tr><td>Hysteresis compensation</td><td>post-discharge rest uses discharge-side offset</td></tr>
+  <tr><td>Sensor statistics</td><td>histogram matches configured bias + σ</td></tr>
+  <tr><td>SOH anchors</td><td>count anchor pairs on the 2-week fixture; report frequency</td></tr>
+</table>
+
+<!-- ════════════ 5. ALI FUNCTIONS ════════════ -->
+<h2 class="section">5. Layer 3–4 Function Specifications + Integration <span class="owner-ali">ALI</span></h2>
+
+<h3 class="sub">5.1 bms_limits.m — dynamic State-of-Power (stateless, pure math)</h3>
+<pre>
+function [I_ch_max, I_dis_max] = bms_limits(SOC_est, Q_est, R_est_ch, R_est_dis, ...
+                                            V_meas, T_meas, dt_h, cfg)
+% Each limit = min over independent constraint curves (all ≥ 0):
+%
+% CHARGE:
+%   I_ch_volt = (V_max_protect − V_meas_max) / R_est_ch        % voltage headroom
+%   I_ch_temp = f_derate_T_chg(T_meas) · I_chg_max_cont        % piecewise-linear ramps
+%   I_ch_soc  = max(0, window_max − SOC_est) · Q_est / Δt      % window (replaces old clamp)
+%   I_ch_max  = max(0, min([I_ch_volt, I_ch_temp, I_ch_soc, I_chg_max_cont]))
+%
+% DISCHARGE (symmetric):
+%   I_dis_volt = (V_meas_min − V_min_warn) / R_est_dis
+%   I_dis_temp = f_derate_T_dis(T_meas) · I_dis_max_cont
+%   I_dis_soc  = max(0, SOC_est − window_min) · Q_est / Δt
+%
+% Temperature derate (charge example): 0 below 0 °C → ramp to 1 over [0,5] →
+%   1 in [5,40] → ramp to 0 over [40,45]. Worst cell governs at pack phase
+%   (T_meas_max for hot end, T_meas_min for cold end).
+%
+% NOTE: protection inputs V_meas/T_meas are RAW measurements, not estimates —
+%       deliberate: the safety path must not depend on estimator health.
+% The voltage-headroom term implicitly creates CC→CV-like taper near full —
+% no explicit CV controller needed at this timescale.
+</pre>
+
+<h3 class="sub">5.2 bms_mode.m — state machine (MATLAB function, NOT Stateflow — v1 decision #2)</h3>
+<pre>
+function [mode, I_ch_out, I_dis_out, state_out] = bms_mode( ...
+            I_meas, V_meas, T_meas, SOC_est, I_ch_max, I_dis_max, cfg, state_in)
+% mode: INIT=0 STANDBY=1 CHARGE=2 DISCHARGE=3 DERATE=4 FAULT=5 (int enum)
+% state_in: .mode .fault_latch .t_dwell_h
+% In FAULT: I_ch_out = I_dis_out = 0  (EMS then naturally dispatches I = 0,
+%           no special-casing downstream)
+</pre>
+<table>
+  <tr><th>From → To</th><th>Condition</th></tr>
+  <tr><td>INIT → STANDBY</td><td>first tick complete (SOC_est seeded from OCV at rest)</td></tr>
+  <tr><td>STANDBY → CHARGE / DISCHARGE</td><td><code>I_meas &gt; +thr</code> / <code>I_meas &lt; −thr</code> (thr = 0.015 A)</td></tr>
+  <tr><td>CHARGE/DISCHARGE → STANDBY</td><td><code>|I_meas| &lt; thr</code> for ≥ 1 tick</td></tr>
+  <tr><td>any → DERATE</td><td>any derate factor &lt; 1 in the active direction (label, not new logic)</td></tr>
+  <tr><td>any → FAULT</td><td>V ≥ V_max_protect OR V ≤ V_min_protect OR T outside protect range OR SOC_est outside [protect_min, protect_max]</td></tr>
+  <tr><td>FAULT → STANDBY</td><td>hysteresis release: OV → V ≤ 3.45; UV → V ≥ 2.80; T back inside ± 3 °C; min dwell 1 tick. <strong>Exception:</strong> UV-at-low-T → latched, operator flag (v1 decision #3)</td></tr>
+</table>
+
+<h3 class="sub">5.3 bms_init.m — seeds and initial states</h3>
+<pre>
+function [biases, est_state0, mode_state0, sens_state0] = bms_init(cfg, V_meas_t0, seed)
+% Draws frozen sensor biases (seeded rng → Data/bms_scatter_seed.mat for repro),
+% seeds SOC_est from OCV⁻¹(V_meas_t0) — battery is at rest at t=0,
+% initializes every stateful function's state struct.
+</pre>
+
+<h3 class="sub">5.4 Simulink integration (Ali owns Battery_sim_2.slx exclusively)</h3>
+<ol>
+  <li>Define the 4 bus objects (§2) in <code>Data/Workspace_set.m</code>.</li>
+  <li>Route plant outputs onto <code>BatteryTruthBus</code>; rename logged SOC output to <code>SOC_true</code>. Aging/thermal subsystems keep consuming true SOC — they ARE plant physics. Only dispatch decision logic stops seeing truth.</li>
+  <li>New BMS subsystem: sensors → estimators → limits → mode, wired against stubs from day one.</li>
+  <li>Slim <code>current_limiter.m</code>: SOC-window clamp and static I limits deleted — they arrive as <code>I_ch_out/I_dis_out</code>. EMS keeps only power→current conversion, request clamping, charge/discharge split.</li>
+  <li>Causality pattern preserved: BMS acts on measurements from step k, limits apply at step k+1 (existing Memory-block pattern).</li>
+</ol>
+
+<h3 class="sub">5.5 Ali's self-test — Test/test_limits.m + Test/test_mode.m</h3>
+<table>
+  <tr><th>Check</th><th>Pass criterion</th></tr>
+  <tr><td>T = −5 °C charge</td><td>I_ch_max = 0</td></tr>
+  <tr><td>T = 42 °C charge</td><td>derated, continuous (no step)</td></tr>
+  <tr><td>SOC_est = 0.94</td><td>I_ch_max tapers smoothly to 0 at 0.95</td></tr>
+  <tr><td>V forced below 2.0 V</td><td>FAULT fires, both limits → 0</td></tr>
+  <tr><td>V recovers above 2.80 V</td><td>STANDBY after 1-tick dwell</td></tr>
+  <tr><td>Threshold boundary + noise</td><td>no chattering (hysteresis bands work)</td></tr>
+  <tr><td>Full model with stub estimators</td><td>10-year sim completes, no errors</td></tr>
+</table>
+
+<!-- ════════════ 6. TIME SCALING ════════════ -->
+<h2 class="section">6. Time-Scaling Caveat (1 step = 1 hour)</h2>
+<ul>
+  <li>The BMS tick is 1 h. Real protection reacts in ms–s; here it acts one hour-step after threshold crossing. Fine for energy/aging studies; <strong>this twin cannot resolve fast protection events</strong> (short circuit, inrush) — documented limitation.</li>
+  <li>Rest-detection times, sensor lags, balancing duties are expressed in hours, quantized to whole steps.</li>
+  <li>High-resolution profile work (BMS-timescale validation) is a separate later phase — see roadmap §9.</li>
+</ul>
+
+<!-- ════════════ 7. MILESTONES ════════════ -->
+<h2 class="section">7. Milestones — Meet Only When Necessary</h2>
+
+<div class="gate">
+  <div class="gate-title">M0 — Contract Day <span class="tag orange">together · ~half a day</span></div>
+  <ul class="checklist">
+    <li>Sign off every function signature in §4–5 → <strong>frozen</strong></li>
+    <li>Write <code>bms_config.m</code> together (§3) → read-only after today</li>
+    <li>Ali commits stubs for ALL functions (both layers) — .slx wires against stubs immediately</li>
+    <li><strong>Ali exports the test fixture:</strong> 2-week recorded window of I/V/T/SOC_true → <code>Data/fixture_2week.mat</code>. This makes Diaa fully independent — he never needs Simulink or Ali to develop Layers 1–2</li>
+    <li>Resolve remaining decisions (already leaning: λ-ramp policy, int-enum modes, shared OCV table, R_est in Sprint 1)</li>
+    <li><strong>Exit:</strong> main.m runs with stub BMS, bit-identical to baseline → tag <code>gate-0</code></li>
+  </ul>
+</div>
+
+<p style="text-align:center; font-style:italic; color:#555; margin:14px 0;">— then radio silence is fine: Diaa on fixtures, Ali on .slx + protection. A finished module = push + passing test in the same commit. No meeting needed. —</p>
+
+<div class="gate">
+  <div class="gate-title">M1 — The Handshake <span class="tag orange">together · 2 h time-boxed</span></div>
+  <p><strong>Trigger:</strong> both self-test suites green and pushed. Swap stubs for real estimators in the .slx, run the 10-year simulation.</p>
+  <table>
+    <tr><th>Check</th><th>Pass criterion</th></tr>
+    <tr><td>Model runs</td><td>no errors on 10-year run</td></tr>
+    <tr><td>SOC_true trajectory</td><td>within ±2 % of pre-BMS baseline</td></tr>
+    <tr><td>SOC_est − SOC_true</td><td>visible sawtooth: drift + anchor snaps</td></tr>
+    <tr><td>SOH_est vs SOH_true</td><td>tracks within 5 % after first valid anchor pair</td></tr>
+    <tr><td>Mode timeline</td><td>STANDBY-dominated, bands aligned with dispatch, zero unexplained FAULTs</td></tr>
+    <tr><td>Dynamic limits</td><td>continuous, no jumps except FAULT</td></tr>
+    <tr><td>Fault-path test</td><td>inject +50 mA current bias → protection catches the drift before V_true exits [2.0, 3.6] V</td></tr>
+  </table>
+  <p><strong>Debugging by layer boundary:</strong> belief wrong → Layer 2 (Diaa); action wrong given correct belief → Layer 3 (Ali). Tag <code>gate-1</code>.</p>
+</div>
+
+<div class="gate">
+  <div class="gate-title">M2 — Pack Day <span class="tag orange">together · 2 h time-boxed</span></div>
+  <p><strong>Sprint 2 before it (parallel):</strong></p>
+  <table>
+    <tr><th>Ali (Layer 0 + 3)</th><th>Diaa (Layer 1 + 2)</th></tr>
+    <tr><td>Vectorize plant: 16 series blocks/module (1s12p lumped), per-block scatter: Q ~ ±0.5 %, R ~ ±2 %, self-discharge ~ ±5 % (dominant long-run divergence driver)</td><td><code>bms_balancing.m</code>: balance if block V &gt; min(V)+5 mV AND mode ∈ {CHARGE, STANDBY}; I_bleed = V/33 Ω; bleed heat to slave PCB (NOT cell node); E_bal accumulator</td></tr>
+    <tr><td>Extend limits/mode to worst-cell aggregation (min/max over blocks — input aggregation only, no equation changes)</td><td>Bias-sweep study: b_I ∈ {1, 5, 10, 20} mA → SOC worst-case error + anchor recovery (thesis result)</td></tr>
+  </table>
+  <p><strong>Pass:</strong> blocks diverge under scatter, re-converge under balancing (ΔV → &lt;5 mV steady-state); E_bal over 1 yr nonzero &amp; plausible (order: few Wh/module/yr); scatter off → balancing never triggers.</p>
+</div>
+
+<!-- ════════════ 8. FILES ════════════ -->
+<h2 class="section">8. File Structure &amp; Ownership</h2>
+<pre>
+Stationary-BESS-Digital-Twin/
+├── main.m                      (exists; + bms_init call)              ALI
+├── Battery_sim_2.slx           (exists; + BMS subsystem)              ALI  ← exclusive
+├── Cell/                       (exists; plant physics — UNCHANGED)    —
+│   └── current_limiter.m       (slimmed: loses static clamps)         ALI
+├── BMS/
+│   ├── bms_config.m            single source of truth                 BOTH @ M0, then frozen
+│   ├── bms_sensor_model.m                                             DIAA
+│   ├── bms_ocv_inverse.m                                              DIAA
+│   ├── bms_soc_estimator.m                                            DIAA
+│   ├── bms_soh_estimator.m                                            DIAA
+│   ├── bms_r_estimator.m                                              DIAA
+│   ├── bms_balancing.m         (Sprint 2)                             DIAA
+│   ├── bms_limits.m                                                   ALI
+│   ├── bms_mode.m                                                     ALI
+│   └── bms_init.m                                                     ALI
+├── Data/
+│   ├── fixture_2week.mat       recorded I/V/T/SOC_true (M0 export)    ALI creates
+│   ├── ocv_table.mat           shared 19-point table (plant + BMS)    BOTH @ M0
+│   └── bms_scatter_seed.mat    persisted bias/scatter draws           auto
+└── Test/
+    ├── test_estimators.m                                              DIAA
+    ├── test_limits.m                                                  ALI
+    ├── test_mode.m                                                    ALI
+    └── test_balancing.m        (Sprint 2)                             DIAA
+</pre>
+
+<div class="rules-box">
+  <ol>
+    <li><strong>File ownership is exclusive per sprint</strong> (table above). <code>bms_config.m</code> and <code>ocv_table.mat</code> read-only after M0.</li>
+    <li><strong>Stubs stay until the real function passes its own test;</strong> the test ships in the same commit. A function without a passing test is treated as a stub.</li>
+    <li><strong>Signatures frozen at M0.</strong> A needed change = flagged discussion, never a silent commit or workaround.</li>
+    <li><strong>Milestone sessions time-boxed at 2 h</strong> (M0 half-day). Unresolved issues become tracked bugs, not open-ended meetings.</li>
+    <li><strong>Truth firewall:</strong> no function in BMS/ may take SOC_true, SOH_true, R_i, or Q_heat as input. Truth signals exist only in logging/analysis scripts.</li>
+  </ol>
+</div>
+
+<!-- ════════════ 9. ROADMAP ════════════ -->
+<h2 class="section">9. Roadmap Beyond M2</h2>
+<div class="timeline">
+M0   (½ day, together)  │ contracts + config + stubs + fixture export        → gate-0
+S1   (~4 days, parallel)│ DIAA: sensors + estimators vs fixture
+                        │ ALI:  limits + mode + .slx wiring + slimmed EMS
+M1   (2 h, together)    │ handshake: real estimators in the loop, 10-yr run  → gate-1
+S2   (~4 days, parallel)│ DIAA: balancing + bias-sweep study
+                        │ ALI:  pack vectorization + worst-cell aggregation
+M2   (2 h, together)    │ pack + BMS integration, balancing verification     → gate-2
+─────────────────────────────────────────────────────────────────────────────
+Later phases (same pattern — one layer, one owner, one bus):
+  · EMS upgrade: real dispatch strategies (peak shaving / self-consumption)
+  · High-resolution synthetic daily profile (BMS-timescale validation)
+  · Power-electronics efficiency chain (Schimpe PE loss model, 2.88 V system min)
+  · Thermal zone / container model (aux power 287 W, HVAC)
+  · Error-budget &amp; efficiency ledger (aux + balancing losses vs Schimpe Table 3)
+</div>
+
+<!-- ════════════ 10. DECISIONS ════════════ -->
+<h2 class="section">10. Decision Log (resolved at review of v1)</h2>
+<table>
+  <tr><th>#</th><th>Decision</th><th>Resolution</th></tr>
+  <tr><td>1</td><td>Q_nom</td><td><strong>3.0 Ah</strong> — Schimpe's nominal (tested new-cell capacity; 1C = 3.0 A)</td></tr>
+  <tr><td>2</td><td>OCV snap blend λ</td><td><strong>Ramp to full reset:</strong> λ = min(1, (t_rest − t_min)/t_min) — full trust in OCV after 2× rest_time_min in a steep zone</td></tr>
+  <tr><td>3</td><td>State machine</td><td><strong>MATLAB function + state struct</strong> (not Stateflow) — simpler at 1 h ticks, no toolbox dependency, unit-testable outside Simulink</td></tr>
+  <tr><td>4</td><td>OCV table</td><td><strong>Shared .mat</strong>, single source for plant and BMS. (Perturbed-copy realism experiment optional later)</td></tr>
+  <tr><td>5</td><td>R_est timing</td><td><strong>Sprint 1</strong> — bms_limits consumes it from day one; initialized to nominal so it's never garbage</td></tr>
+  <tr><td>6</td><td>Mode datatype</td><td><strong>Int enum</strong> (INIT=0…FAULT=5) — Simulink-bus-friendly</td></tr>
+  <tr><td>7</td><td>FAULT recovery</td><td>Hysteresis auto-recover (stationary BESS norm); <strong>exception:</strong> UV-at-low-T latched for operator</td></tr>
+  <tr><td>8</td><td>Sample-rate realism</td><td>1 h tick accepted; limitation documented (§6)</td></tr>
+</table>
+
+<br>
+<div style="text-align:center; font-size:9pt; color:#888; border-top:1px solid #ddd; padding-top:13px; margin-top:28px;">
+  Stationary BESS Digital Twin · BMS Layered Development Plan v2.0 · June 2026 · Ali &amp; Diaa
+</div>
+
+</body>
+</html>
