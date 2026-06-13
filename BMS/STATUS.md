@@ -35,6 +35,51 @@ Legend: ✅ done · 🔄 in progress · ⬜ not started
 
 ---
 
+## ⏳ OPEN ARCHITECTURE DECISION — two-model structure (raised 2026-06-13, Ali)
+
+**Needs a joint decision before more .slx wiring.** Status: UNRESOLVED.
+
+We have two Simulink models, each with its own copy of the plant:
+- `Battery_sim_2` — longevity twin, 1 h steps, reaches 10 yr. Plant + aging +
+  dispatch (`current_limiter`). **No BMS in it yet.**
+- `BMS_Submodel` — fast model, 0.01 s steps, short horizons. Own plant copy
+  (thermal + aging, multi-rate) + BMS subsystem + **empty EMS placeholder**.
+
+**The hard constraint (horizon × resolution):** can't have both in one run.
+- 10 yr at 0.01 s ≈ 3e13 steps → impossible. `BMS_Submodel` can **NEVER**
+  reach 10 yr, however finished.
+- 1 h steps reach 10 yr easily but can't resolve ms protection events.
+
+So the two models are two operating points, not redundancy:
+| question | Battery_sim_2 (1 h) | BMS_Submodel (0.01 s) |
+|---|---|---|
+| 10-yr aging / SOC-SOH drift | ✅ | ❌ never |
+| ms protection / mode timing | ❌ | ✅ |
+
+The BMS must run in BOTH timescales (same `dt_h`-agnostic code) → at Simulink
+level the BMS subsystem is **instantiated in both** (shared component, like a
+function called from two places). The genuine duplication is the **plant** in
+both `.slx`. Only way to avoid it = one multi-rate model, which trades the
+duplication for rate-boundary complexity (ZOH / `step_size`-vs-`dt_h` /
+Rate-Changer bugs) and STILL can't reach 10 yr.
+
+**Two questions to settle:**
+1. Two single-rate models (plant duplicated, BMS subsystem shared) — or one
+   multi-rate model (no duplication, but the rate-boundary plumbing)?
+2. Next priority: 10-yr **closed-loop** result (BMS limits constraining
+   dispatch → aging; needs BMS in the 1 h context) — or **fast protection**
+   behavior (needs `BMS_Submodel` finished + its empty EMS built)?
+
+**Ali's lean:** two single-rate models. BMS into `Battery_sim_2` first (already
+has a validated dispatch needing only slimming; all-1 h so no rate boundary) →
+gives the 10-yr closed-loop result. Keep `BMS_Submodel` as the secondary fast
+model for protection timing, simplified to single-rate (drop its aging — moot
+over minutes) when we reach it.
+
+**Diaa's take:** _(pending)_
+
+---
+
 ## Plan Amendments (agreed deviations from the HTML plan)
 
 1. **`SOC_est` is NOT a FAULT trigger.** The HTML plan lists SOC outside
