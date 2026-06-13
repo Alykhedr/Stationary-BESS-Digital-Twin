@@ -38,18 +38,29 @@ m = mode_state.mode;
 charging    = I_meas >  cfg.mode.I_idle_thr;
 discharging = I_meas < -cfg.mode.I_idle_thr;
 
+% --- active thermal-protect envelope -------------------------------------
+% A2 fix: temperature is checked in EVERY state, including idle. When
+% charging, the tighter charge range applies (no charge below 0 degC); when
+% discharging OR idle, the widest (discharge) range is the absolute safety
+% bound — so an idle cell that is genuinely too hot/cold still faults.
+if charging
+    T_hi = cfg.cell.T_chg_max;   T_lo = cfg.cell.T_chg_min;
+else
+    T_hi = cfg.cell.T_dis_max;   T_lo = cfg.cell.T_dis_min;
+end
+
 % =====================================================================
-% FAULT detection (any state except already-FAULT)
+% FAULT detection (evaluated every tick, every state)
 % =====================================================================
 new_fault = 0;
 if V_meas_max >= cfg.cell.V_max_protect
     new_fault = 1;                                          % OV
 elseif V_meas_min <= cfg.cell.V_min_protect
     new_fault = 2;                                          % UV
-elseif charging && (T_meas_max >= cfg.cell.T_chg_max || T_meas_min <= cfg.cell.T_chg_min)
-    if T_meas_max >= cfg.cell.T_chg_max, new_fault = 3; else, new_fault = 4; end
-elseif discharging && (T_meas_max >= cfg.cell.T_dis_max || T_meas_min <= cfg.cell.T_dis_min)
-    if T_meas_max >= cfg.cell.T_dis_max, new_fault = 3; else, new_fault = 4; end
+elseif T_meas_max >= T_hi
+    new_fault = 3;                                          % OT
+elseif T_meas_min <= T_lo
+    new_fault = 4;                                          % UT
 end
 
 entered_fault = false;
@@ -62,11 +73,9 @@ if m ~= cfg.mode.FAULT && new_fault > 0
     % (a charge fault at 0 degC must not "recover" against the -20 degC
     %  discharge limit)
     if new_fault == 3
-        if charging, mode_state.fault_T_limit = cfg.cell.T_chg_max;
-        else,        mode_state.fault_T_limit = cfg.cell.T_dis_max; end
-    elseif new_fault == 4
-        if charging, mode_state.fault_T_limit = cfg.cell.T_chg_min;
-        else,        mode_state.fault_T_limit = cfg.cell.T_dis_min; end
+        mode_state.fault_T_limit = T_hi;   % store the limit that tripped so
+    elseif new_fault == 4                  % recovery checks the right one
+        mode_state.fault_T_limit = T_lo;
     else
         mode_state.fault_T_limit = 0;
     end
@@ -86,8 +95,13 @@ switch m
     case cfg.mode.FAULT
         if ~entered_fault
             mode_state.dwell_h = mode_state.dwell_h + dt_h;
+            % A1 fix: never release while ANY fault condition is currently
+            % live (new_fault > 0), not only when the latched fault's recovery
+            % band is met — guards against releasing straight into a different
+            % active fault.
             can_release = mode_state.dwell_h >= cfg.mode.fault_dwell_min * dt_h ...
-                          && ~mode_state.uv_latched;
+                          && ~mode_state.uv_latched ...
+                          && new_fault == 0;
             if can_release
                 fc = mode_state.fault_code;
                 released = false;

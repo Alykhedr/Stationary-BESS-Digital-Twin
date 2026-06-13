@@ -20,11 +20,12 @@ Plan of record: `docs/BMS_Layered_Plan.html` (+ review amendments below).
 | `bms_soc_estimator.m` | DIAA | ✅ done, tests pass | ⚠️ signature: returns `corrected` as 2nd output (SOH anchor events); tables as args |
 | `bms_soh_estimator.m` | DIAA | ✅ done, tests pass | plausibility window 0.5–1.5× Q_nom rejects bad anchors |
 | `bms_r_estimator.m` | DIAA | ✅ done, tests pass | direction bin = sign of NEW current; plausibility window on R_new |
-| `bms_limits.m` | ALI (drafted by Diaa) | 🔄 draft, tests pass | ⚠️ Ali to review/own; uses V_max_warn per amendment #2; returns `derate_active` 3rd output for bms_mode |
-| `bms_mode.m` | ALI (drafted by Diaa's side) | ✅ done, tests pass | gates limits to 0 in FAULT; stores violated T-limit in state (`fault_T_limit`) so recovery checks the right threshold; same-tick release guarded; UV-at-low-T latched |
+| `bms_limits.m` | ALI | ✅ reviewed & owned (2026-06-13) | uses V_max_warn per amendment #2; returns `derate_active` 3rd output. DERATE=temperature-only ratified (decision below) |
+| `bms_mode.m` | ALI | ✅ reviewed, owned, A1/A2 fixed (2026-06-13) | direction-specific T recovery; UV-at-low-T latched. **Ali fixes:** A1 = no FAULT release while ANY fault live (`new_fault==0` gate); A2 = T faults checked in every state incl. idle (idle uses widest/discharge envelope). Regression cases test_mode §10–11 |
+| `bms_init.m` | ALI | ✅ reviewed & owned (2026-06-13) | minor: NaN `V_meas_t0` → `r.V_prev=NaN` is benign (plausibility window rejects it, self-heals tick 2) |
 | `.slx` BMS subsystem + stub wiring | ALI (exclusive) | ⬜ not started | |
 | `Test/test_estimators.m` | DIAA | ✅ sections 1–6 green | incl. draft limits tests (Ali to move into test_limits.m if preferred) |
-| `Test/test_mode.m` | ALI (drafted) | ✅ 9 cases green | incl. chattering, latch, direction-specific T recovery |
+| `Test/test_mode.m` | ALI | ✅ 11 cases green | + §10 A1 multi-fault release guard, §11 A2 idle over/under-temp |
 | `Test/test_limits.m` | ALI | ⬜ optional | limits cases currently live in test_estimators §6 — move if preferred |
 | End-to-end chain on fixture | BOTH | ✅ ran clean | sensors→est→limits→mode: 0 spurious FAULTs, modes STANDBY 50/CH 28/DIS 23 %, SOC err ≤4 % steady (spikes on 32 %/h ramp ticks are fixture alignment artifacts), Q_est 2.999 Ah |
 | Gate-0 (stubs wired, bit-identical baseline) | BOTH | ⬜ | |
@@ -50,6 +51,44 @@ Legend: ✅ done · 🔄 in progress · ⬜ not started
 3. **Aux power accounting added** (`cfg.aux`): 2.76 W/module slave +
    81 W master (Schimpe Table 3). Log as energy ledger entry; do NOT subtract
    from cell power flow at single-cell phase (it's an AC-side system load).
+4. **DERATE = temperature only** (ratified 2026-06-13). `bms_limits.derate_active`
+   reflects ONLY the T-derate factor, NOT the voltage-headroom or SOC-window
+   tapers. Those bind on nearly every tick (normal CC→CV / end-of-window
+   behavior) and would otherwise label the mode DERATE constantly. Deviation
+   from the HTML plan's "any derate factor < 1" — accepted.
+
+---
+
+## SOH-Estimation Study (offline, 2026-06-13, Ali)
+
+Question raised: with Q_est ~constant and wide-span anchor pairs supposedly
+rare, does the SOH estimator actually earn its place, or does Q_est stale
+while the true capacity fades?
+
+Method: `Test/make_fixture_long.m` runs the aging plant (Battery_sim_2) for
+the full 10 yr → `Data/fixture_long.mat` (87 601 samples, logs truth incl.
+SOH_true/Q_actual). `Test/soh_study.m` runs the offline sensor→R→SOC→SOH
+chain against it and compares belief vs truth. Plot: `Test/soh_study.png`.
+
+Result — **the estimator works; worry refuted for this profile:**
+- True fade over 10 yr: SOH 1.00 → 0.9075 (Q 3.0 → 2.722 Ah, 9.25 %).
+- Anchor pairs (≥50 % span, plausible): **371/yr** (3 708 total) — NOT rare.
+- OCV snaps (SOC corrections): 3 235/yr.
+- **Q_est tracks Q_actual to +0.67 % at end of life** (belief 2.742 vs truth
+  2.722 Ah); SOH_est mean |err| 0.36 %.
+- SOC_est: median |err| **0.9 %** on normal ticks. The scary max (~59 %) is a
+  **1-h timescale artifact**: 25 % of ticks ramp SOC >10 %/h (up to 52 %/h at
+  ~1.5 A); a one-sample lead/lag then shows large transient error that
+  resolves next tick (corr(|err|, |dSOC/dt|)=0.67). Vanishes at sub-hour rate
+  → concrete argument for the fast model.
+
+Consequences:
+- SOH estimator: **keep, no design change.**
+- Scheduled recalibration (forced full cycle): demoted from "likely required"
+  to **robustness insurance** — unnecessary for THIS profile (anchors plentiful),
+  still warranted for profiles that park mid-plateau and rarely hit extremes.
+- The large SOC-error band in the longevity twin is NOT a bug to chase — it is
+  the 1-h resolution limit and motivates the high-rate context.
 
 ---
 

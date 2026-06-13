@@ -75,4 +75,27 @@ for k = 1:10
 end
 assert(m == M.FAULT, '9 latched fault auto-recovered');
 
+% 10. A1: must NOT release from FAULT while a DIFFERENT fault is live
+ms = fresh(); [~, ~, ~, ~, ms] = bms_mode(0, 3.3, 3.3, 25, 25, false, 3, 3, ms, cfg, dt);
+[m, ~, ~, fc, ms] = bms_mode(+1.0, 3.61, 3.3, 25, 25, false, 3, 3, ms, cfg, dt);   % enter OV
+assert(m == M.FAULT && fc == 1, '10 setup OV fault failed');
+% OV hysteresis satisfied (Vmax 3.40 <= 3.45) BUT live UV (Vmin 1.90 <= 2.0)
+[m, Ic, Id, ~, ms] = bms_mode(0, 3.40, 1.90, 25, 25, false, 3, 3, ms, cfg, dt);
+assert(m == M.FAULT && Ic == 0 && Id == 0, '10 released into a live UV (A1 regression)');
+% clear the UV too -> now all clear -> release
+[m, ~, ~, ~, ms] = bms_mode(0, 3.40, 2.85, 25, 25, false, 3, 3, ms, cfg, dt);
+assert(m == M.STANDBY, '10 failed to release once all faults cleared');
+
+% 11. A2: over/under-temperature must fault even when IDLE (no current)
+ms = fresh(); [~, ~, ~, ~, ms] = bms_mode(0, 3.3, 3.3, 25, 25, false, 3, 3, ms, cfg, dt);
+[m, Ic, Id, fc, ~] = bms_mode(0, 3.3, 3.3, 65, 65, false, 3, 3, ms, cfg, dt);   % idle, 65 degC
+assert(m == M.FAULT && fc == 3 && Ic == 0 && Id == 0, '11 idle over-temp not faulted (A2)');
+ms = fresh(); [~, ~, ~, ~, ms] = bms_mode(0, 3.3, 3.3, 25, 25, false, 3, 3, ms, cfg, dt);
+[m, ~, ~, fc, ~] = bms_mode(0, 3.3, 3.3, -25, -25, false, 3, 3, ms, cfg, dt);  % idle, -25 degC
+assert(m == M.FAULT && fc == 4, '11 idle under-temp not faulted (A2)');
+% ...but idle at 3 degC (below charge-min 0, inside discharge range) must NOT fault
+ms = fresh(); [~, ~, ~, ~, ms] = bms_mode(0, 3.3, 3.3, 25, 25, false, 3, 3, ms, cfg, dt);
+[m, ~, ~, ~, ~] = bms_mode(0, 3.3, 3.3, 3, 3, false, 3, 3, ms, cfg, dt);
+assert(m == M.STANDBY, '11 idle at 3 degC wrongly faulted (idle uses widest envelope)');
+
 fprintf('=== test_mode: ALL PASS ===\n');
