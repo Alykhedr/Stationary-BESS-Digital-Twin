@@ -76,7 +76,68 @@ gives the 10-yr closed-loop result. Keep `BMS_Submodel` as the secondary fast
 model for protection timing, simplified to single-rate (drop its aging — moot
 over minutes) when we reach it.
 
-**Diaa's take:** _(pending)_
+**Diaa's take (21-06-2026):**
+Answers to Questions:
+1. Two models would be the ideal answer. The ageing, 1-hour step, model should
+   covers the main point of the project, whereas the second, the BMS-specific model
+   should cover the sub-hour marks *and* can be transferred directly into a 
+   Real-life BMS.   
+2. The fast protection behaviour on the actual model would need some rework to adapt
+   to the new BMS model,i.e. calibrations with the fast model, variable limitations and so on. 
+   
+The Idea to solve both: instead of a 1 h BMS (too coarse to be a real BMS) or a brute-force 
+fast model, which would be inefficient to test with every small change, is to embed a SURROGATE 
+of the fast BMS in the slow model. Once per hour, reconstruct a plausible within-hour structure from
+the hourly aggregate within the BMS limit logic, so ageing/limits see real C-rate
+structure the hourly mean smears away, for example, it would actually see the 1C instead of maxing at 0.49C.
+The change would adapt the rate-dependent ageing terms that are CONVEX in C-rate (low-T
+plating ~ exp(I_ch)). By Jensen, a profile with variance ages MORE than its
+flat mean, which previously the averaged signal structurally couldn't see this. Surrogate
+would find the middle ground and fix it.
+
+Three solutions came to mind:
+(1) and (2) compute the surrogate during the 1h simulation
+(3) PRECOMPUTES the same thing.
+
+### Idea 1 — Stochastic reconstruction
+- Split the hour into 5–n random steps (random C-rate with Random durations) with
+  ∑ Cᵢ·tᵢ = C̄·T (integrates to the same charge as the hourly mean).
+- Each step must respect the BMS limit at that step's SOC/T (ties to the
+  adaptive limiter).
+- Convexity trap: the injected variance DRIVES the ageing result, so the
+  step distribution must be CALIBRATED, not guessed (reference = fast model
+  or real sub-hourly data which we don't have). Seeded for reproducibility 
+  and averaged across different seeds for reliability.
+
+
+### Idea 2 — Substep ageing (consumes Idea 1's steps)
+- Run calendar + cycle aging (already rate-form, take dt_h) over the substeps.
+- SOC and T must ALSO be integrated at substep resolution (thermal τ≈18 min
+  moves within the hour; freezing T per hour loses the transient).
+- Efficiency: ~10–20 substeps × 87 600 h ≈ 0.88–1.75 M evaluations..  over 10 yr,
+  which is minuscule when compared against the 30M evaluations over the fast model.
+- Requires changes to the main model: ageing called per-substep; thermal + SOC
+  integrated at substep resolution. (atomic can work here btw)
+
+### Idea 3 — Precomputed map (caches the surrogate)
+- Tabulate surrogate output over a grid (SOH, T, SOC, Crate, …) → slow model
+  interpolates.
+- Grid as first stated (0.02C / 1° / 0.1 SOH / 1% SOC ≈ 1.1 M pts) likely
+  infeasible. Mitigations:
+  (a) coarse grid + interpolation, outputs are smooth but may have slight differences.
+  (b) EXPLOIT existing separability k_ref·f(T)·f(SOC)·f(I) → low-dim curves,
+      not a 5-D tensor;
+  (c) a map of *ageing* is redundant with the analytic equations — the map
+      only earns its keep if it captures the BMS COUPLING (permitted C-rate,
+      limit/voltage / T excursions) The equations don't.
+
+### Cross-cutting (applies to all three)
+- Fast model is the CALIBRATION REFERENCE, never a competitor to the slow one.
+- Lean: build 1+2 (online, analytic, cheap, no curse of dimensionality)
+  First, fall back to 3 only if reconstruction must use real fast-model runs.
+
+
+Ali's Comment : _pending w kda_
 
 ---
 
