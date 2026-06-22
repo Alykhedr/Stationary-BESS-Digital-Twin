@@ -35,9 +35,12 @@ Legend: ✅ done · 🔄 in progress · ⬜ not started
 
 ---
 
-## ⏳ OPEN ARCHITECTURE DECISION — two-model structure (raised 2026-06-13, Ali)
+## ✅ ARCHITECTURE DECISION — two-model structure (raised + RESOLVED 2026-06-13)
 
-**Needs a joint decision before more .slx wiring.** Status: UNRESOLVED.
+**RESOLVED — see "RESOLUTION" section below for the decision + the bounding
+study + the real-BESS comparison.** Outcome: two single-rate models (slow 1 h /
+fast 100 Hz), never connected, sharing one BMS codebase, no surrogate, both
+carry the BMS. The discussion that led there is kept below for the record.
 
 We have two Simulink models, each with its own copy of the plant:
 - `Battery_sim_2` — longevity twin, 1 h steps, reaches 10 yr. Plant + aging +
@@ -137,7 +140,117 @@ Three solutions came to mind:
   First, fall back to 3 only if reconstruction must use real fast-model runs.
 
 
-Ali's Comment : _pending w kda_
+Ali's Comment (2026-06-13): surrogate idea is sound in principle, but I ran a
+bounding experiment to size it before committing — see RESOLUTION below. Short
+version: for THIS profile the within-hour effect is in the noise, so we skip the
+surrogate. Your Jensen/convexity reasoning is correct; it just doesn't bite at
+our low C-rates.
+
+---
+
+## ✅ RESOLUTION — within-hour surrogate + two-model architecture (2026-06-13, Ali)
+
+This closes both the surrogate proposal (above) and the OPEN ARCHITECTURE
+DECISION (top of file). Decided with numbers, not opinion.
+
+### 1. The study (Test/within_hour_aging_study.m + make_fixture_long.m)
+
+Question: the 1-h model uses the hourly-MEAN current, smearing within-hour
+structure. Since some aging terms are convex in C-rate (cycle: exp(kCdch·C),
+kCdch=0.296) and in T (Arrhenius), by Jensen the mean under-predicts aging.
+How big is the error?
+
+Method: ran the aging plant 10 yr → `Data/fixture_long.mat` (87 601 h, logs
+truth). Re-computed aging under within-hour reconstructions, split into the two
+halves we identified:
+- (a) THERMAL TRANSIENT at the hourly-mean current — defensible, needs NO
+  invented data (T moves within the hour even at constant I).
+- (b) CURRENT-PULSE bound — each hour's charge delivered as a 1C pulse + rest;
+  the WORST-CASE for the part we cannot calibrate without sub-hourly data.
+
+### 2. Results (10-yr SOH loss)
+
+| scenario | fade | Δ vs baseline |
+|---|---|---|
+| baseline (1-h mean) | 8.72 % | — |
+| (a) + thermal transient @ mean I | 8.74 % | **+0.2 % rel** (negligible) |
+| (b) + 1C-pulse worst case | 9.32 % | **+6.9 % rel** (gross over-estimate) |
+
+Why it's small, structurally:
+- **Calendar aging dominates: 73 % of the fade**, and calendar has NO C-rate
+  term (only SOC + T). So ~¾ of degradation is immune to within-hour current.
+- **C-rates are tiny**: active-hour mean C-rate median 0.00 C, 95th pct 0.23 C.
+  "1C pulse" is a 4–5× exaggeration → (b) is a loose upper bound; realistic
+  effect ~1–3 % rel.
+- **Killer point**: offline-replication vs in-plant aging already differ 8.72 vs
+  9.25 % (~0.5 pp) — the entire worst-case within-hour effect (0.60 pp) is
+  WITHIN the model's own replication noise.
+
+### 3. Decision
+
+- **No surrogate.** Not worth the machinery + the uncalibratable invented
+  variance for a ≤7 %-worst / ~1–3 %-realistic / in-the-noise effect on THIS
+  low-C-rate PV+load profile. Log it as a known small bias; optionally apply a
+  flat documented cycle-aging factor (×1.185 worst case) if we want conservatism.
+- **Caveat (fair to Diaa):** this is PROFILE-SPECIFIC. For a high-power use case
+  (frequency regulation, sustained ≥1C), calendar would not dominate and the
+  convexity WOULD matter — revisit the surrogate then.
+
+### 4. Final architecture (closes the OPEN DECISION at top)
+
+**Two single-rate models, never connected, sharing ONE `dt_h`-agnostic BMS
+codebase. No surrogate.**
+
+| | slow model (`Battery_sim_2`) | fast model (`BMS_Submodel`) |
+|---|---|---|
+| rate / horizon | 1 h / 10 yr | 0.01 s (100 Hz) / minutes |
+| plant | own copy | own copy (no aging needed — pre-age via init Q) |
+| BMS subsystem | ✅ (shared code) | ✅ (shared code) |
+| validates | energy, aging, SOC/SOH drift, dispatch (closed loop) | protection timing, mode/hysteresis, sensor lag |
+
+- They never run together / never wire to each other. The plant is duplicated;
+  that's the accepted cost. The BMS subsystem is the shared component (same
+  source, two instances) — this is what keeps them from drifting apart.
+- **BOTH models carry the BMS** (not just the fast one).
+- Multi-rate single-model and the surrogate are both dropped → no Rate-Changer /
+  ZOH / step_size-vs-dt_h plumbing needed in either model.
+
+### 5. Reality check vs real BESS BMS (web-researched 2026-06-13)
+
+A real BMS is itself TIERED multi-rate on one device:
+- µs: analog hardware protection (AFE→MOSFET/contactor) — short-circuit cutoff.
+- ms: digital/software protection (overcurrent discrimination ~100–150 ms).
+- ~100 Hz front-end sampling → ~10 Hz; SOC/SOH estimation ~1–2 s (≈1 Hz).
+- slow/periodic: SOH capacity recalibration (weeks–months). Stationary BMS use
+  OCV-at-rest→SOC exactly as we do; BMS often outlives the cell (15–20 yr).
+
+Our two models BRACKET these tiers:
+- fast model (100 Hz) ≈ the ms-protection + 1–100 Hz estimation tiers — well
+  matched. **Diaa's 0.01 s rate is realistic** (corrects Ali's earlier "1 s is
+  enough" — too coarse for the 100–150 ms protection discrimination).
+- slow model (1 h) ≈ the aging/SOH tier.
+- OUT OF SCOPE (correctly): the µs analog hardware cutoff — that's hardware, not
+  BMS *logic*, so not part of a digital twin of the BMS algorithms.
+- Honest gap: a real BMS estimates SOC ~1 Hz continuously; our SLOW model only
+  estimates hourly. Fine for 10-yr trends (its job); the fast model covers the
+  realistic 1–100 Hz estimation. No single model is "realistic" — the PAIR is.
+- Standard-practice check: literature confirms explicit multi-timescale
+  separation is hard and a unified µs→decade run is infeasible, so splitting is
+  the accepted compromise. Our shared-code design mitigates the split's main
+  risk (the two models drifting apart).
+
+Sources: sunlithenergy.com/bms-monitoring-protection-soc-soh-guide;
+copowbattery.com BMS response time; sunlithenergy.com/bms-soc-estimation;
+arXiv 2310.14289 (multiscale separation); arXiv 2509.02366 (5-tier DT);
+USPTO 8170818 (multi-rate state estimator).
+
+### 6. Next step (unblocked by this decision)
+
+Integrate the BMS into `Battery_sim_2` as a CLOSED LOOP (lift Diaa's BMS
+subsystem in, feed limits/mode back into a slimmed `current_limiter`). This is
+the M1 handshake and gives the real 10-yr closed-loop result. `BMS_Submodel`
+stays the secondary fast model; simplify it to single-rate (drop aging) when we
+pick it up.
 
 ---
 
