@@ -23,8 +23,8 @@ cfg.cell.V_min_warn       = 2.50;    % [V] derating knee (Schimpe PE binds at
 cfg.cell.V_reconnect_hi   = 3.45;    % [V] hysteresis release after OV fault
 cfg.cell.V_reconnect_lo   = 2.80;    % [V] hysteresis release after UV fault
 
-cfg.cell.T_chg_min        =  0;      % [degC] no charge below (datasheet)
-cfg.cell.T_chg_max        = 45;      % [degC]
+cfg.cell.T_chg_min        = -1;      % [degC] no charge below (datasheet)
+cfg.cell.T_chg_max        = 46;      % [degC]
 cfg.cell.T_dis_min        = -20;     % [degC]
 cfg.cell.T_dis_max        = 60;      % [degC]
 cfg.cell.T_warn_band      =  5;      % [degC] derate ramp width inside limits
