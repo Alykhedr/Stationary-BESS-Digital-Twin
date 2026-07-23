@@ -1,4 +1,4 @@
-% TEST_MODE  Self-test for bms_mode (Ali's validation table from the plan).
+% TEST_MODE  Self-test for bms_mode (protection state machine).
 clear; clc;
 root = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(root, 'BMS'));

@@ -4,9 +4,9 @@ function [I_ch_max, I_dis_max, derate_active] = bms_limits(V_meas_max, V_meas_mi
 % Each limit is the minimum of independent constraint curves:
 %   voltage headroom | temperature derate | SOC window | hardware continuous
 %
-% AMENDMENT (STATUS.md #2): charge headroom uses V_max_warn (3.55 V),
-% NOT V_max_protect (3.60 V) — otherwise the limiter steers the cell
-% right up to the fault threshold and noise latches FAULT.
+% Charge headroom uses V_max_warn (3.55 V), NOT V_max_protect (3.60 V) —
+% otherwise the limiter steers the cell right up to the fault threshold
+% and sensor noise latches FAULT.
 %
 % Protection inputs V_meas/T_meas are RAW measurements, not estimates —
 % deliberate: the safety path must not depend on estimator health.

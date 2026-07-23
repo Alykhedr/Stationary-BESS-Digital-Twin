@@ -1,7 +1,7 @@
 function cfg = bms_config()
 % BMS_CONFIG  Single source of truth for all BMS thresholds and parameters.
 %
-% Frozen at M0 — do not edit without agreement from both owners.
+% Central configuration: every BMS threshold and parameter in one place.
 % ALL fields are numeric (scalars, vectors, or nested structs of numerics)
 % so the struct can be attached to MATLAB Function blocks as a Parameter.
 % No strings, no cells, no function handles.
@@ -103,7 +103,7 @@ cfg.mode.I_idle_thr       = 0.015;   % [A] STANDBY <-> CHARGE/DISCHARGE
 cfg.mode.fault_dwell_min  = 1;       % [ticks] min dwell before FAULT release
 
 % =====================================================================
-% Balancing (dissipative, per Schimpe; live at pack phase / Sprint 2)
+% Balancing (dissipative, per Schimpe; live at pack phase)
 % =====================================================================
 cfg.bal.V_threshold       = 5e-3;    % [V] balance if V > min(V) + threshold
 cfg.bal.R_bleed           = 33;      % [Ohm] ~100 mA bleed at 3.3 V
