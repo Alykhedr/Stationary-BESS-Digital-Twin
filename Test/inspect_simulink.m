@@ -16,7 +16,7 @@
 %   I. Input/Output ports and signal routing summary
 % =========================================================================
 
-projectRoot = fileparts(mfilename('fullpath'));
+projectRoot = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(projectRoot, 'Cell'));
 addpath(fullfile(projectRoot, 'Data'));
 

@@ -1,6 +1,6 @@
-% TEST_ESTIMATORS  Self-test suite for Diaa's Layer 1-2 functions.
+% TEST_ESTIMATORS  Self-test suite for the BMS sensor + estimation functions.
 % Run standalone: results printed, asserts fire on regression.
-% Sections are added in the same commit as each function (M0 rule).
+% Each section unit-tests one function.
 
 clear; clc;
 root = fileparts(fileparts(mfilename('fullpath')));
@@ -193,7 +193,7 @@ assert(rs3.R_ch == cfg.rest.R_nominal_ch, '5.3 updated on sub-threshold step');
 fprintf('Section 5 (bms_r_estimator): all PASS\n');
 
 %% ---------------------------------------------------------------------
-%% Section 6: bms_limits (draft -- Ali owns; mirrors his test_limits table)
+%% Section 6: bms_limits
 %% ---------------------------------------------------------------------
 Rn_ch = cfg.rest.R_nominal_ch; Rn_dis = cfg.rest.R_nominal_dis;
 % 6.1 T = -5 degC: charge forbidden
