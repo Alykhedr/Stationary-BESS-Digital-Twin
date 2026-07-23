@@ -11,7 +11,7 @@
 
 fprintf('\n========== BESS Digital Twin — Fix Validation ==========\n\n');
 
-projectRoot = fileparts(mfilename('fullpath'));
+projectRoot = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(projectRoot, 'Cell'));
 addpath(fullfile(projectRoot, 'Data'));
 Cell_Variables_Init;   % load parameters into workspace

@@ -3,6 +3,7 @@ clear; clc;
 % Add project paths
 addpath(fullfile(fileparts(mfilename('fullpath')), 'Cell'));
 addpath(fullfile(fileparts(mfilename('fullpath')), 'Data'));
+addpath(fullfile(fileparts(mfilename('fullpath')), 'BMS'));
 
 run(fullfile(fileparts(mfilename('fullpath')), 'Data', 'Workspace_set'));
 load("WS_Variables.mat")

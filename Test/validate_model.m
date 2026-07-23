@@ -18,7 +18,7 @@
 %  11.  Current limiter logic        (current_limiter)
 % =========================================================================
 
-projectRoot = fileparts(mfilename('fullpath'));
+projectRoot = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(projectRoot, 'Cell'));
 addpath(fullfile(projectRoot, 'Data'));
 Cell_Variables_Init;

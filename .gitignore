@@ -3,9 +3,11 @@ slprj/
 codegen/
 *.slxc
 
-# Simulink autosave & backups
+# Simulink autosave, backups & version-specific auto-exports
 *.autosave
 *_backup_*.slx
+*.slx.original
+*.slx.r20*
 
 # MATLAB binary session / workspace snapshots
 *.asv

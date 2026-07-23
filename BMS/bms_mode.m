@@ -6,8 +6,8 @@ function [mode, I_ch_max_out, I_dis_max_out, fault_code, mode_state] = bms_mode(
 % This function also gates the limits: in FAULT both outputs are zeroed, so
 % downstream dispatch needs no special-casing (request clamps to 0 -> I = 0).
 %
-% FAULT conditions (RAW measurements only — never SOC_est, see STATUS.md
-% amendment #1):
+% FAULT conditions (RAW measurements only — never SOC_est, so the safety
+% path never depends on estimator health):
 %   OV: V_meas_max >= V_max_protect
 %   UV: V_meas_min <= V_min_protect
 %   OT/UT: T outside the protect range of the ACTIVE direction

@@ -17,7 +17,7 @@ function [soc_ocv, valid] = bms_ocv_inverse(V_meas_rest, I_last_sign, SOC_hint, 
 %
 % Notes:
 % - Table args are passed in (not loaded here): MATLAB Function blocks can't
-%   load() at runtime; Ali attaches the tables as Parameters in the .slx,
+%   load() at runtime; the tables are attached as Parameters in the .slx,
 %   the offline harness loads Data/ocv_table.mat once and passes them.
 % - Tables are the raw 25 degC reference (no dUdT correction, <=6 mV effect).
 % - On the flat plateau a 2 mV error maps to >10 % SOC -> guard rails.
